@@ -35,6 +35,12 @@ async function run() {
     entryPoints: ["src/options/options.js"],
     outfile: "dist/options.js"
   });
+
+  await build({
+    ...common,
+    entryPoints: ["src/content/catchCanvas.js"],
+    outfile: "dist/catchCanvas.js"
+  })
 }
 
 run().catch((err) => {
