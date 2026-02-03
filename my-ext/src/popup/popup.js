@@ -1,10 +1,10 @@
-import { getSetting, setSetting } from "../shared/storage.js";
+import { getSettings, setSettings } from "../shared/storage.js";
 
 document.getElementById("btn").addEventListener("click", async () => {
   const key = "clickCount";
-  const current = (await getSetting(key)) ?? 0;
+  const current = (await getSettings().key) ?? 0;
   const next = current + 1;
-  await setSetting(key, next);
+  await setSettings({key, next});
   document.getElementById("out").textContent = `clickCount = ${next}`;
 });
 

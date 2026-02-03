@@ -1,8 +1,15 @@
-export async function getSetting(key) {
-  const result = await chrome.storage.sync.get(key);
-  return result[key];
+export const DEFAULTS = 
+{ 
+  darkMode: false,
+  fontSize: "16pt",
+  font: "Monserrat",
+  exampleSetting: ""
+};
+
+export async function getSettings() {
+  return chrome.storage.sync.get(DEFAULTS);
 }
 
-export async function setSetting(key, value) {
-  await chrome.storage.sync.set({ [key]: value });
+export async function setSettings(patch) {
+  return chrome.storage.sync.set(patch);
 }
