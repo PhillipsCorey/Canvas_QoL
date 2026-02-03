@@ -7,3 +7,9 @@ document.getElementById("btn").addEventListener("click", async () => {
   await setSetting(key, next);
   document.getElementById("out").textContent = `clickCount = ${next}`;
 });
+
+document.getElementById("openChat").addEventListener("click", () => {
+  chrome.tabs.create({
+    url: chrome.runtime.getURL("chat.html")
+  });
+});
