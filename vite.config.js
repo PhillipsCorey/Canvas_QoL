@@ -11,6 +11,7 @@ export default defineConfig({
         popup: "popup.html",
         options: "options.html",
         chat: "chat.html",
+        api: "api.html"
       },
     },
   },
