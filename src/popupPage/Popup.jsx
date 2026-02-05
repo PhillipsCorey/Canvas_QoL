@@ -5,6 +5,12 @@ export default function Popup() {
     });
   };
 
+  const openAPI = () => {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL("api.html")
+    })
+  }
+
   return (
     <div className="w-64 p-4 bg-slate-900 text-white">
       <h1 className="text-lg font-bold mb-3">
@@ -17,6 +23,13 @@ export default function Popup() {
       >
         Open Chat
       </button>
+      
+      <button
+        onClick={openAPI}
+        className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
+        >
+          Open API
+        </button>
     </div>
   );
 }
