@@ -3,7 +3,8 @@ export const DEFAULTS =
   darkMode: false,
   fontSize: "16pt",
   font: "Monserrat",
-  exampleSetting: ""
+  exampleSetting: "",
+  todo: []
 };
 
 export async function getSettings() {
