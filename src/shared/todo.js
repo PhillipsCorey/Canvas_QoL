@@ -25,19 +25,19 @@ export const todo_basic = {
             ]
         },
         {
-            "name": "University",
-            "items": [
+            name: "University",
+            items: [
                 {
-                    "name": "COP3502 Project 1",
-                    "descr": "Do coding project",
-                    "time": "2 hrs",
-                    "done": "False"
+                    name: "COP3502 Project 1",
+                    descr: "Do coding project",
+                    time: "2 hrs",
+                    done: "False"
                 },
                 {
-                    "name": "PHY2049 Exam 1",
-                    "descr": "Study for exam",
-                    "time": "2.5 hrs",
-                    "done": "True"
+                    name: "PHY2049 Exam 1",
+                    descr: "Study for exam",
+                    time: "2.5 hrs",
+                    done: "True"
                 }
             ]
         }
