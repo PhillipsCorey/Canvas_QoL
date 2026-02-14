@@ -2,6 +2,8 @@ import { ChevronDown, Mic, SendHorizontal, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function Chat() {
+  const [chatMode, setChatMode] = useState("query");
+  const [heroText, setHeroText] = useState("What's on the schedule this week?");
   const [query, setQuery] = useState("");
 
   //////////////////////////////////////////////////////////////////
@@ -21,11 +23,27 @@ export default function Chat() {
   const handleSend = () => {
     if (query.trim()) {
       console.log("Sending:", query);
+      testQuerySubmit();
 
       // TODO: LLM query logic
-
-      setQuery("");
     }
+  };
+
+
+  // Temp query response example
+  const testQuerySubmit = () => {
+    setHeroText("Processing your word vomit...");
+    
+    setTimeout(() => {
+      setHeroText("Dang bro this week sucks...");
+    }, 2000);
+    
+    setTimeout(() => {
+      setChatMode("result");
+      setHeroText("What's on the schedule this week?");
+      setQuery("");
+    }, 4000);
+
   };
 
 
@@ -89,55 +107,63 @@ export default function Chat() {
 
           {/* Center Content */}
           <div className="flex flex-1 items-center justify-center">
-            <div className="flex w-full flex-col space-y-4 items-center mb-[150px]">
-              <span className="font-bold text-4xl text-primary text-center">What's on the schedule this week?</span>
-              
-              {/* Input Container */}
-              <div className="bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border w-[60%] px-4 py-3 rounded-lg flex items-center gap-3">
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="Type your message here..."
-                  className="flex-1 bg-transparent outline-none text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
-                />
+            {chatMode === "query" && (
+              <div className="flex w-full flex-col space-y-4 items-center mb-[150px]">
+                <span className="font-bold text-4xl text-primary text-center">{heroText}</span>
                 
-                {/* Icons */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleMic}
-                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
-                    aria-label="Voice input"
-                  >
-                    <Mic size={20} className="text-gray-600 dark:text-gray-200" />
-                  </button>
+                {/* Input Container */}
+                <div className="bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border w-[60%] px-4 py-3 rounded-lg flex items-center gap-3">
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type your message here..."
+                    className="flex-1 bg-transparent outline-none text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                  />
                   
-                  <button
-                    onClick={handleSend}
-                    disabled={!query.trim()}
-                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    aria-label="Send message"
+                  {/* Icons */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleMic}
+                      className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+                      aria-label="Voice input"
+                    >
+                      <Mic size={20} className="text-gray-600 dark:text-gray-200" />
+                    </button>
+                    
+                    <button
+                      onClick={handleSend}
+                      disabled={!query.trim()}
+                      className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Send message"
+                    >
+                      <SendHorizontal size={20} className="text-gray-600 dark:text-gray-200" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* List Context Selector */}
+                <div className="relative w-[200px] self-start ml-[20%]">
+                  <select
+                    className="w-full appearance-none bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 p-2 rounded-lg outline-none cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+                    defaultValue=""
                   >
-                    <SendHorizontal size={20} className="text-gray-600 dark:text-gray-200" />
-                  </button>
+                    <option value="" disabled>Talking about a list?</option>
+                    <option value="My Week">My Week</option>
+                    <option value="Dinosaur Paper">Dinosaur Paper</option>
+                    {/* TODO: List current to-do lists here */}
+                  </select>
+                  <ChevronDown size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-200 pointer-events-none" />
                 </div>
               </div>
+            )}
 
-              {/* List Context Selector */}
-              <div className="relative w-[200px] self-start ml-[20%]">
-                <select
-                  className="w-full appearance-none bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 p-2 rounded-lg outline-none cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
-                  defaultValue=""
-                >
-                  <option value="" disabled>Talking about a list?</option>
-                  <option value="My Week">My Week</option>
-                  <option value="Dinosaur Paper">Dinosaur Paper</option>
-                  {/* TODO: List current to-do lists here */}
-                </select>
-                <ChevronDown size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-200 pointer-events-none" />
+            {chatMode === "result" && (
+              <div className="flex w-full flex-col space-y-4 items-center mb-[150px]">
+                <span className="font-bold text-4xl text-primary text-center">This is a result?</span>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
