@@ -9,14 +9,24 @@ export default function Chat() {
   const [responseList, setResponseList] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+
   //////////////////////////////////////////////////////////////////
   // Check browswer or OS dark mode prefrence and default to that //
   //////////////////////////////////////////////////////////////////
   useEffect(() => {
-    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    chrome.storage?.local.get(["darkMode"], (result) => {
+      let isDarkMode;
+      if (result.darkMode !== undefined) {
+        isDarkMode = result.darkMode;
+      }
+      
+      else {
+        isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
 
-    if (isDarkMode) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
+      if (isDarkMode) document.documentElement.classList.add("dark");
+      else document.documentElement.classList.remove("dark");
+    });
   }, []);
 
 
@@ -106,15 +116,6 @@ export default function Chat() {
   };
 
 
-  /////////////////////
-  // Handle settings //
-  /////////////////////
-  const handleSettings = () => {
-    console.log("Settings clicked");
-    // TODO: Settings logic
-  };
-
-
   /////////////////////////////////////////
   // Handler for response action buttons //
   /////////////////////////////////////////
@@ -180,7 +181,7 @@ export default function Chat() {
           <div className="flex items-center justify-between px-6 py-4">
             <h1 className="text-2xl font-bold text-primary">Canvas QoL</h1>
             <button
-              onClick={handleSettings}
+              onClick={() => {chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });}}
               className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
               aria-label="Settings"
             >

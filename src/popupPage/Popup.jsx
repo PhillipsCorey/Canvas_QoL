@@ -4,9 +4,19 @@ import TodoList from "../components/todoList";
 
 export default function Popup() {
   useEffect(() => {
-    const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (isDarkMode) document.documentElement.classList.add("dark");
-    else document.documentElement.classList.remove("dark");
+    chrome.storage?.local.get(["darkMode"], (result) => {
+      let isDarkMode;
+      if (result.darkMode !== undefined) {
+        isDarkMode = result.darkMode;
+      }
+      
+      else {
+        isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+
+      if (isDarkMode) document.documentElement.classList.add("dark");
+      else document.documentElement.classList.remove("dark");
+    });
   }, []);
 
   const openChat = () => {
