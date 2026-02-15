@@ -47,15 +47,20 @@ export default function Popup() {
 
 
   useEffect(() => {
-    chrome.storage?.local.get(["todos"], (result) => {
-      const normalized = normalizeTodos(result?.todos);
+    chrome.storage?.local.get(["todoData"], (result) => {
+      // Harcoded one todo list (for now)
+      const firstList = result?.todoData?.["To Do List"] || [];
+      const normalized = normalizeTodos(firstList);
       setTodos(normalized);
-      chrome.storage?.local.set({ todos: normalized });
+
+      const todoData = { "To Do List": normalized }
+      chrome.storage?.local.set({ todoData });
     });
   }, []);
 
   useEffect(() => {
-    chrome.storage?.local.set({ todos });
+    const todoData = { "To Do List": todos };
+    chrome.storage?.local.set({ todoData });
   }, [todos]);
 
   useEffect(() => {
@@ -74,7 +79,9 @@ export default function Popup() {
   };
 
   const openAPI = () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL("api.html") });
+    const jsonString = JSON.stringify(todos, null, 2);
+    console.log(jsonString);
+    // chrome.tabs.create({ url: chrome.runtime.getURL("api.html") });
   };
 
   const addTodo = () => {
