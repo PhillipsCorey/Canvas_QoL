@@ -1,6 +1,8 @@
 import { ChevronDown, Mic, SendHorizontal, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import TodoList from "../components/todoList";
+import { todoPlaintext, todoJSON } from "./navigator";
+import { TodoBasicSchema } from "../shared/todo_schema";
 
 export default function Chat() {
   const [chatMode, setChatMode] = useState("query");
@@ -33,68 +35,53 @@ export default function Chat() {
   ////////////////////////////////
   // Send the user query to LLM //
   ////////////////////////////////
-  const handleSend = () => {
-    if (query.trim()) {
-      console.log("Sending:", query);
-      testQuerySubmit();
+const handleSend = async () => {
+  if (query.trim()) {
+    console.log("Sending:", query);
 
-      // TODO: LLM query logic
-    }
-  };
-
-
-  // Temp query response example
-  const testQuerySubmit = () => {
     setHeroText("Processing your word vomit...");
-    
-    setTimeout(() => {
-      setHeroText("Dang bro this week sucks...");
-    }, 2000);
-    
-    setTimeout(() => {
-      // Mock LLM response with hardcoded todo list
-      const mockResponse = [
-        {
-          name: "Study Tasks",
-          items: [
-            {
-              name: "Review Chapter 5",
-              descr: "Read and take notes on algorithms",
-              time: "1 hr",
-              done: false,
-              subtasks: []
-            },
-            {
-              name: "Practice Problems",
-              descr: "Complete exercises 1-10",
-              time: "45 mins",
-              done: false,
-              subtasks: []
-            }
-          ]
-        },
-        {
-          name: "Personal",
-          items: [
-            {
-              name: "Grocery Shopping",
-              descr: "Buy ingredients for meal prep",
-              time: "30 mins",
-              done: false,
-              subtasks: []
-            }
-          ]
-        }
-      ];
-      
-      setResponseList(mockResponse);
-      setChatMode("result");
-      setHeroText("What's on the schedule this week?");
-      setQuery("");
-    }, 4000);
 
-  };
+    //  first we make one pass to OSS 120B to turn the user's ramblings 
+    // into a markdown-summarized list of what they need to do
+    const responsePlaintext = await todoPlaintext(query); 
+    const outputPlaintext = responsePlaintext.choices[0].message.content;
+    console.log(outputPlaintext);
 
+    setHeroText("Dang bro this week sucks...");
+
+    let parsed;
+
+    // following this, we take the cleanly markdown-formatted list
+    // and we try to pass this back to OSS 120B in order to turn it from
+    // simple markdown formatting to our desired structured output, TodoBasicSchema
+    // sometimes the model fails and does not produce useful output, so we have this
+    // logic in a loop which will try multiple times if the output cannot be parsed correctly.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const responseJSON = await todoJSON(outputPlaintext);
+      console.log(responseJSON);
+
+      const outputJSON = responseJSON.output
+        .flatMap((o) => o.content)
+        .find((c) => c.type === "output_text").text;
+
+      console.log(outputJSON);
+
+      parsed = JSON.parse(outputJSON);
+
+      const validated = TodoBasicSchema.safeParse(parsed);
+      if (validated.success) {
+        parsed = validated.data;
+        break;
+      }
+    }
+
+    // if we escape the loop, logic is valid and we're free to update state.
+    setResponseList(parsed.todo);
+    setChatMode("result");
+    setHeroText("What's on the schedule this week?");
+    setQuery("");
+  }
+};
 
   ////////////////////////
   // Handle voice input //
