@@ -1,5 +1,6 @@
 import { ChevronDown, Mic, SendHorizontal, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
+import TodoList from "../components/todoList";
 
 export default function Chat() {
   const [chatMode, setChatMode] = useState("query");
@@ -81,13 +82,8 @@ export default function Chat() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar */}
-        <div className="w-[350px] border-r border-light-border dark:border-dark-border bg-light-bg-sidebar dark:bg-dark-bg-sidebar">
-          
-          {/* Header */}
-          <div className="text-center bg-light-bg-sidebar dark:bg-dark-bg-sidebar px-4 py-3 mt-2">
-            <span className="text-2xl font-bold text-primary">To-Do List</span>
-          </div>
-
+        <div className="w-[350px] p-4 border-r border-light-border dark:border-dark-border bg-light-bg-sidebar dark:bg-dark-bg-sidebar">
+          <TodoList/>
         </div>
 
         {/* Right Side - Chat Area */}
