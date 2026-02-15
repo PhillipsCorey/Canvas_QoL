@@ -12,7 +12,7 @@ export const todo_basic = {
                         {
                             name: "Drive to doctor's",
                             time: "5 mins",
-                            done: "True"
+                            done: true
                         }
                     ]
                 },
@@ -20,7 +20,7 @@ export const todo_basic = {
                     name: "Workout",
                     descr: "Get swole at SW Rec",
                     time: "45 mins",
-                    done: "False"
+                    done: false
                 }
             ]
         },
@@ -31,13 +31,13 @@ export const todo_basic = {
                     name: "COP3502 Project 1",
                     descr: "Do coding project",
                     time: "2 hrs",
-                    done: "False"
+                    done: false
                 },
                 {
                     name: "PHY2049 Exam 1",
                     descr: "Study for exam",
                     time: "2.5 hrs",
-                    done: "True"
+                    done: true
                 }
             ]
         }
