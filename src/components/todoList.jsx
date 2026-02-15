@@ -63,7 +63,7 @@ export default function TodoList() {
 
   const addTodo = () => {
     const trimmed = newTodo.trim();
-    const categoryToUse = selectedCategory === "New" ? newCategoryName.trim() : selectedCategory;
+    const categoryToUse = selectedCategory === "" ? newCategoryName.trim() : selectedCategory;
     
     if (!trimmed || !categoryToUse) return;
 
