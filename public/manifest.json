@@ -11,12 +11,16 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["storage"],
+  "permissions": ["storage", "notifications"],
   "host_permissions": ["<all_urls>"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"]
+    },
+    {
+      "matches": ["https://ufl.instructure.com/*"],
+      "js": ["catchCanvas.js"]
     }
   ],
   "icons": {

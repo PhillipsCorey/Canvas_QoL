@@ -1,18 +1,36 @@
 {
-  "name": "canvas_qol",
-  "version": "1.0.0",
-  "description": "A Chrome Web Extension aimed at first-generation university students, aiming to help develop planning skills and improve productivity.",
-  "main": "index.js",
+  "name": "my-ext",
+  "private": true,
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node scripts/build.js"
+    "dev": "vite",
+    "build": "node scripts/build.mjs",
+    "lint": "eslint .",
+    "preview": "vite preview"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "lucide-react": "^0.563.0",
+    "openai": "^6.22.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.3.6"
+  },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.24",
     "esbuild": "^0.27.2",
-    "fs-extra": "^11.3.3"
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "fs-extra": "^11.3.3",
+    "globals": "^16.5.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "vite": "^7.2.4"
   }
 }

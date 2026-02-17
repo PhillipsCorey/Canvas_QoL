@@ -1,40 +1,38 @@
-import { build } from "esbuild";
+import { build as viteBuild } from "vite";
+import { build as esbuild } from "esbuild";
 import fs from "fs-extra";
 
 async function run() {
   await fs.remove("dist");
+
   await fs.copy("public", "dist");
 
   const common = {
     bundle: true,
     format: "esm",
     platform: "browser",
-    sourcemap: true
+    sourcemap: true,
   };
 
-  await build({
+  await esbuild({
     ...common,
     entryPoints: ["src/background/serviceWorker.js"],
-    outfile: "dist/background.js"
+    outfile: "dist/background.js",
   });
 
-  await build({
+  await esbuild({
     ...common,
     entryPoints: ["src/content/contentScript.js"],
-    outfile: "dist/content.js"
+    outfile: "dist/content.js",
   });
 
-  await build({
+  await esbuild({
     ...common,
-    entryPoints: ["src/popup/popup.js"],
-    outfile: "dist/popup.js"
-  });
+    entryPoints: ["src/content/catchCanvas.js"],
+    outfile: "dist/catchCanvas.js"
+  })
 
-  await build({
-    ...common,
-    entryPoints: ["src/options/options.js"],
-    outfile: "dist/options.js"
-  });
+  await viteBuild();
 }
 
 run().catch((err) => {

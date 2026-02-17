@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-white dark:bg-[#242424] text-gray-900 dark:text-white/90;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  /* Style select dropdown options */
+  select option {
+    background-color: white;
+    color: #1f2937;
+  }
+
+  select option:hover,
+  select option:checked {
+    background-color: #f3f4f6;
+  }
+
+  /* Dark mode options */
+  @media (prefers-color-scheme: dark) {
+    select option {
+      background-color: #1f2937;
+      color: #e5e7eb;
+    }
+
+    select option:hover,
+    select option:checked {
+      background-color: #374151;
+    }
+  }
+}
