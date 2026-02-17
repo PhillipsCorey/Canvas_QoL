@@ -10,6 +10,7 @@ export default function Chat() {
   const [query, setQuery] = useState("");
   const [responseList, setResponseList] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [pastQueries, setPastQueries] = useState([])
 
 
   //////////////////////////////////////////////////////////////////
@@ -31,6 +32,14 @@ export default function Chat() {
     });
   }, []);
 
+  ///////////////////////////////////////
+  // Pull previously sent queries on mount  //
+  ///////////////////////////////////////
+  useEffect(() => {
+    chrome.storage?.local.get(["pastFiveQueries"], (result) => {
+      setPastQueries(result.pastFiveQueries || []);
+    });
+  }, []);
 
   ////////////////////////////////
   // Send the user query to LLM //
@@ -44,6 +53,15 @@ const handleSend = async () => {
     setHeroText("Nice try.");
     return;
   }
+
+  // update history (max 5)
+  const updatedQueries = [query, ...pastQueries].slice(0, 5);
+
+  setPastQueries(updatedQueries);
+
+  chrome.storage?.local.set({
+    pastFiveQueries: updatedQueries
+  });
 
   console.log("Sending:", query);
   setHeroText("Processing your word vomit...");
