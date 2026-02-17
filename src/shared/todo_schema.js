@@ -10,10 +10,11 @@ export const SubtaskSchema = z.object({
 // each task has metadata, and an optional list of subtasks
 export const TaskSchema = z.object({
   name: z.string(),
-  descr: z.string().nullable(),        // must exist, can be null
+  descr: z.string(),
   time: z.string(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   done: z.boolean(),
-  subtasks: z.array(SubtaskSchema).nullable(), // must exist, can be null
+  subtasks: z.array(SubtaskSchema),
 });
 
 
