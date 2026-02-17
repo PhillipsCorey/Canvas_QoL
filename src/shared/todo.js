@@ -7,6 +7,7 @@ export const todo_basic = {
                     name: "Doctor's Visit",
                     descr: "Go to SHCC",
                     time: "15 mins",
+                    date: "06/12/26",
                     done: true,
                     subtasks: [
                         {
@@ -31,12 +32,14 @@ export const todo_basic = {
                     name: "COP3502 Project 1",
                     descr: "Do coding project",
                     time: "2 hrs",
+                    date: "06/12/26",
                     done: false
                 },
                 {
                     name: "PHY2049 Exam 1",
                     descr: "Study for exam",
                     time: "2.5 hrs",
+                    date: "06/12/26",
                     done: true
                 }
             ]

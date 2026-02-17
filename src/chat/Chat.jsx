@@ -1,7 +1,7 @@
 import { ChevronDown, Mic, SendHorizontal, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import TodoList from "../components/todoList";
-import { todoPlaintext, todoJSON } from "./navigator";
+import { todoPlaintext, todoJSON, isInjectionLike } from "./navigator";
 import { TodoBasicSchema } from "../shared/todo_schema";
 
 export default function Chat() {
@@ -36,52 +36,64 @@ export default function Chat() {
   // Send the user query to LLM //
   ////////////////////////////////
 const handleSend = async () => {
-  if (query.trim()) {
-    console.log("Sending:", query);
+  if (!query.trim()) return;
 
-    setHeroText("Processing your word vomit...");
+  setQuery("");
 
-    //  first we make one pass to OSS 120B to turn the user's ramblings 
-    // into a markdown-summarized list of what they need to do
-    const responsePlaintext = await todoPlaintext(query); 
-    const outputPlaintext = responsePlaintext.choices[0].message.content;
-    console.log(outputPlaintext);
-
-    setHeroText("Dang bro this week sucks...");
-
-    let parsed;
-
-    // following this, we take the cleanly markdown-formatted list
-    // and we try to pass this back to OSS 120B in order to turn it from
-    // simple markdown formatting to our desired structured output, TodoBasicSchema
-    // sometimes the model fails and does not produce useful output, so we have this
-    // logic in a loop which will try multiple times if the output cannot be parsed correctly.
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const responseJSON = await todoJSON(outputPlaintext);
-      console.log(responseJSON);
-
-      const outputJSON = responseJSON.output
-        .flatMap((o) => o.content)
-        .find((c) => c.type === "output_text").text;
-
-      console.log(outputJSON);
-
-      parsed = JSON.parse(outputJSON);
-
-      const validated = TodoBasicSchema.safeParse(parsed);
-      if (validated.success) {
-        parsed = validated.data;
-        break;
-      }
-    }
-
-    // if we escape the loop, logic is valid and we're free to update state.
-    setResponseList(parsed.todo);
-    setChatMode("result");
-    setHeroText("What's on the schedule this week?");
-    setQuery("");
+  if (isInjectionLike(query)) {
+    setHeroText("Nice try.");
+    return;
   }
+
+  console.log("Sending:", query);
+  setHeroText("Processing your word vomit...");
+
+  const responsePlaintext = await todoPlaintext(query);
+  const outputPlaintext = responsePlaintext.choices[0].message.content;
+  console.log(outputPlaintext);
+
+  setHeroText("Dang bro this week sucks...");
+
+  const tooWhitespacey = (s) => {
+    const len = s.length || 1;
+    const ws = (s.match(/\s/g) || []).length;
+    const maxRun = Math.max(...(s.match(/\n+/g) || [""]).map((x) => x.length));
+    return ws / len > 0.45 || maxRun > 20;
+  };
+
+  let parsed;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const responseJSON = await todoJSON(outputPlaintext);
+
+    const textBlocks = responseJSON.output
+      .flatMap((o) => o.content)
+      .filter((c) => c.type === "output_text" && typeof c.text === "string");
+
+    const outputJSON = textBlocks[textBlocks.length - 1].text;
+
+    if (tooWhitespacey(outputJSON)) continue;
+
+    const candidate = JSON.parse(outputJSON);
+
+    const validated = TodoBasicSchema.safeParse(candidate);
+    if (validated.success) {
+      parsed = validated.data;
+      break;
+    }
+  }
+
+  if (!parsed) {
+    setHeroText("Couldn’t parse the response. Try again.");
+    return;
+  }
+
+  setResponseList(parsed.todo);
+  setChatMode("result");
+  setHeroText("What's on the schedule this week?");
+  setQuery("");
 };
+
 
   ////////////////////////
   // Handle voice input //
