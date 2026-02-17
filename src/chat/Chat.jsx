@@ -157,7 +157,7 @@ const handleSend = async () => {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Sidebar */}
-        <div className="w-[350px] p-4 border-r border-light-border dark:border-dark-border bg-light-bg-sidebar dark:bg-dark-bg-sidebar">
+        <div className="w-[400px] p-4 border-r border-light-border dark:border-dark-border bg-light-bg-sidebar dark:bg-dark-bg-sidebar">
           <TodoList key={refreshTrigger}/>
         </div>
 

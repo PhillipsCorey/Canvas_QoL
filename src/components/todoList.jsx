@@ -1,403 +1,667 @@
 import { useState, useEffect } from "react";
+import { ArrowLeft, CheckSquare, Square, Clock, Plus, ChevronRight, Trash2, Edit3, Check, X } from "lucide-react";
 
-export default function TodoList() {
-  const [todos, setTodos] = useState([]);
-  const [newTodo, setNewTodo] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [expandedItems, setExpandedItems] = useState(new Set());
-  const [editingItem, setEditingItem] = useState(null);
-  const [editingSubtask, setEditingSubtask] = useState(null);
+export default function TodoSidebar() {
+  const [view, setView] = useState("lists"); // "lists" or "detail"
+  const [allLists, setAllLists] = useState({});
+  const [selectedListName, setSelectedListName] = useState(null);
+  const [selectedList, setSelectedList] = useState([]);
+  const [expandedCategories, setExpandedCategories] = useState(new Set());
+  const [newTaskInputs, setNewTaskInputs] = useState({}); // Track input for each category
+  const [editingTask, setEditingTask] = useState(null); // {catIdx, itemIdx}
+  const [editingTaskData, setEditingTaskData] = useState(null);
+  const [addingSubtask, setAddingSubtask] = useState(null); // {catIdx, itemIdx}
+  const [newSubtaskName, setNewSubtaskName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const normalizeTodos = (raw) => {
-    if (!Array.isArray(raw)) return [];
 
-    return raw
-      .filter((cat) => cat?.name && cat.name.trim() !== "")
-      .map((cat) => ({
-        ...cat,
-        name: cat.name.trim(),
-        items: Array.isArray(cat.items)
-          ? cat.items.map((item) => ({
-              ...item,
-              name: item?.name ?? "",
-              descr: item?.descr ?? "",
-              time: item?.time ?? "",
-              done: typeof item?.done === "boolean" ? item.done : false,
-              subtasks: Array.isArray(item?.subtasks)
-                ? item.subtasks.map((subtask) => ({
-                    ...subtask,
-                    name: subtask?.name ?? "",
-                    descr: subtask?.descr ?? "",
-                    time: subtask?.time ?? "",
-                    done: typeof subtask?.done === "boolean" ? subtask.done : false,
-                  }))
-                : [],
-            }))
-          : [],
-      }));
-  };
-
+  /////////////////////////////////
+  // Load all lists from storage //
+  /////////////////////////////////
   useEffect(() => {
     chrome.storage?.local.get(["todoData"], (result) => {
-      const firstList = result?.todoData?.["To Do List"] || [];
-      const normalized = normalizeTodos(firstList);
-      setTodos(normalized);
-
-      const todoData = { "To Do List": normalized };
-      chrome.storage?.local.set({ todoData });
+      const data = result?.todoData || {};
+      setAllLists(data);
     });
   }, []);
 
-  useEffect(() => {
-    const todoData = { "To Do List": todos };
-    chrome.storage?.local.set({ todoData });
-  }, [todos]);
 
-  useEffect(() => {
-    // Wait for todos to load, then set selectedCategory to first category
-    if (todos.length > 0 && selectedCategory === "") {
-      setSelectedCategory(todos[0].name);
-    }
-  }, [todos]);
+  ///////////////////////////////////
+  // Calculate task count for list //
+  ///////////////////////////////////
+  const getTaskCount = (categories) => {
+    if (!Array.isArray(categories)) return 0;
+    return categories.reduce((total, cat) => {
+      return total + (cat.items?.length || 0);
+    }, 0);
+  };
 
-  const addTodo = () => {
-    const trimmed = newTodo.trim();
-    const categoryToUse = selectedCategory === "" ? newCategoryName.trim() : selectedCategory;
+
+  ////////////////////////////
+  // Select a list to view //
+  ///////////////////////////
+  const selectList = (listName) => {
+    setSelectedListName(listName);
+    const list = allLists[listName] || [];
+    setSelectedList(list);
+    setView("detail");
     
-    if (!trimmed || !categoryToUse) return;
-
-    const newItem = {
-      name: trimmed,
-      descr: "",
-      time: "",
-      done: false,
-      subtasks: []
-    };
-
-    setTodos((prev) => {
-      const updated = [...prev];
-      const categoryIndex = updated.findIndex(cat => cat.name === categoryToUse);
-      
-      if (categoryIndex >= 0) {
-        updated[categoryIndex].items.push(newItem);
-      } else {
-        updated.push({
-          name: categoryToUse,
-          items: [newItem]
-        });
-      }
-      
-      return updated;
-    });
-    setNewTodo("");
-    setNewCategoryName("");
+    // Default: expand all categories
+    const allIndices = new Set(list.map((_, idx) => idx));
+    setExpandedCategories(allIndices);
   };
 
-  const addSubtask = (categoryIdx, itemIdx, subtaskName) => {
-    if (!subtaskName.trim()) return;
-    
-    setTodos((prev) => {
-      const updated = [...prev];
-      updated[categoryIdx].items[itemIdx].subtasks.push({
-        name: subtaskName.trim(),
-        descr: "",
-        time: "",
-        done: false
-      });
-      return updated;
-    });
+
+  /////////////////////////////////
+  // Go back to list selection //
+  ////////////////////////////////
+  const backToLists = () => {
+    setView("lists");
+    setSelectedListName(null);
+    setSelectedList([]);
+    setSearchQuery("");
   };
 
-  const toggleItemDone = (categoryIdx, itemIdx) => {
-    setTodos((prev) => {
-      const updated = [...prev];
-      updated[categoryIdx].items[itemIdx].done = !updated[categoryIdx].items[itemIdx].done;
-      return updated;
-    });
-  };
 
-  const toggleSubtaskDone = (categoryIdx, itemIdx, subtaskIdx) => {
-    setTodos((prev) => {
-      const updated = [...prev];
-      updated[categoryIdx].items[itemIdx].subtasks[subtaskIdx].done = !updated[categoryIdx].items[itemIdx].subtasks[subtaskIdx].done;
-      return updated;
-    });
-  };
-
-  const removeItem = (categoryIdx, itemIdx) => {
-    setTodos((prev) => {
-      const updated = [...prev];
-      updated[categoryIdx].items.splice(itemIdx, 1);
-      if (updated[categoryIdx].items.length === 0) {
-        updated.splice(categoryIdx, 1);
-      }
-      return updated;
-    });
-  };
-
-  const removeSubtask = (categoryIdx, itemIdx, subtaskIdx) => {
-    setTodos((prev) => {
-      const updated = [...prev];
-      updated[categoryIdx].items[itemIdx].subtasks.splice(subtaskIdx, 1);
-      return updated;
-    });
-  };
-
-  const updateItem = (categoryIdx, itemIdx, field, value) => {
-    setTodos((prev) => {
-      const updated = [...prev];
-      updated[categoryIdx].items[itemIdx][field] = value;
-      return updated;
-    });
-  };
-
-  const updateSubtask = (categoryIdx, itemIdx, subtaskIdx, field, value) => {
-    setTodos((prev) => {
-      const updated = [...prev];
-      updated[categoryIdx].items[itemIdx].subtasks[subtaskIdx][field] = value;
-      return updated;
-    });
-  };
-
-  const toggleExpanded = (categoryIdx, itemIdx) => {
-    const key = `${categoryIdx}-${itemIdx}`;
-    setExpandedItems((prev) => {
+  ///////////////////////////////
+  // Toggle category expansion //
+  ///////////////////////////////
+  const toggleCategory = (categoryIdx) => {
+    setExpandedCategories(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(key)) {
-        newSet.delete(key);
-      } else {
-        newSet.add(key);
+      if (newSet.has(categoryIdx)) {
+        newSet.delete(categoryIdx);
+      } 
+      
+      else {
+        newSet.add(categoryIdx);
       }
       return newSet;
     });
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      addTodo();
-    }
+
+  ////////////////////////////
+  // Expand all categories //
+  ///////////////////////////
+  const expandAll = () => {
+    const allIndices = new Set(selectedList.map((_, idx) => idx));
+    setExpandedCategories(allIndices);
   };
 
-  const categoryNames = todos.map(cat => cat.name).filter(name => name && name.trim() !== "");
 
+  //////////////////////////////
+  // Collapse all categories //
+  /////////////////////////////
+  const collapseAll = () => {
+    setExpandedCategories(new Set());
+  };
+
+
+  ////////////////////////////////////////////
+  // Filter list based on search query //
+  ///////////////////////////////////////////
+  const filteredList = selectedList.map(category => {
+    if (!searchQuery.trim()) return category;
+    
+    const query = searchQuery.toLowerCase();
+    const categoryMatches = category.name.toLowerCase().includes(query);
+    
+    // If category name matches, return entire category
+    if (categoryMatches) return category;
+    
+    // Otherwise filter items
+    const filteredItems = category.items.filter(item => {
+      return (
+        item.name.toLowerCase().includes(query) ||
+        item.descr.toLowerCase().includes(query)
+      );
+    });
+    
+    // Only return category if it has matching items
+    if (filteredItems.length > 0) {
+      return { ...category, items: filteredItems };
+    }
+    
+    return null;
+  }).filter(cat => cat !== null);
+
+
+  /////////////////////
+  // Delete category //
+  /////////////////////
+  const deleteCategory = (categoryIdx) => {
+    if (!confirm(`Delete category "${selectedList[categoryIdx].name}"?`)) return;
+    
+    const updated = [...selectedList];
+    updated.splice(categoryIdx, 1);
+    setSelectedList(updated);
+    
+    // Update expanded categories indices
+    setExpandedCategories(prev => {
+      const newSet = new Set();
+      prev.forEach(idx => {
+        if (idx < categoryIdx) newSet.add(idx);
+        else if (idx > categoryIdx) newSet.add(idx - 1);
+      });
+      return newSet;
+    });
+
+    // Save to storage
+    const updatedAllLists = { ...allLists, [selectedListName]: updated };
+    chrome.storage?.local.set({ todoData: updatedAllLists });
+    setAllLists(updatedAllLists);
+  };
+
+
+  /////////////////////////////
+  // Toggle task done status //
+  /////////////////////////////
+  const toggleTaskDone = (categoryIdx, itemIdx) => {
+    const updated = [...selectedList];
+    updated[categoryIdx].items[itemIdx].done = !updated[categoryIdx].items[itemIdx].done;
+    setSelectedList(updated);
+    
+    // Save to storage
+    const updatedAllLists = { ...allLists, [selectedListName]: updated };
+    chrome.storage?.local.set({ todoData: updatedAllLists });
+    setAllLists(updatedAllLists);
+  };
+
+
+  ////////////////////////////////
+  // Toggle subtask done status //
+  ////////////////////////////////
+  const toggleSubtaskDone = (categoryIdx, itemIdx, subtaskIdx) => {
+    const updated = [...selectedList];
+    updated[categoryIdx].items[itemIdx].subtasks[subtaskIdx].done = 
+      !updated[categoryIdx].items[itemIdx].subtasks[subtaskIdx].done;
+    setSelectedList(updated);
+    
+    // Save to storage
+    const updatedAllLists = { ...allLists, [selectedListName]: updated };
+    chrome.storage?.local.set({ todoData: updatedAllLists });
+    setAllLists(updatedAllLists);
+  };
+
+
+  ////////////////////////
+  // Start editing task //
+  ////////////////////////
+  const startEditingTask = (categoryIdx, itemIdx) => {
+    setEditingTask({ catIdx: categoryIdx, itemIdx });
+    setEditingTaskData({ ...selectedList[categoryIdx].items[itemIdx] });
+  };
+
+
+  /////////////////////////
+  // Cancel editing task //
+  /////////////////////////
+  const cancelEditingTask = () => {
+    setEditingTask(null);
+    setEditingTaskData(null);
+  };
+
+
+  //////////////////////
+  // Save edited task //
+  //////////////////////
+  const saveEditedTask = () => {
+    if (!editingTask || !editingTaskData) return;
+
+    const updated = [...selectedList];
+    updated[editingTask.catIdx].items[editingTask.itemIdx] = editingTaskData;
+    setSelectedList(updated);
+
+    // Save to storage
+    const updatedAllLists = { ...allLists, [selectedListName]: updated };
+    chrome.storage?.local.set({ todoData: updatedAllLists });
+    setAllLists(updatedAllLists);
+
+    setEditingTask(null);
+    setEditingTaskData(null);
+  };
+
+
+  ////////////////////////////////
+  // Add new task to category //
+  ///////////////////////////////
+  const addTask = (categoryIdx) => {
+    const taskName = newTaskInputs[categoryIdx]?.trim();
+    if (!taskName) return;
+
+    const updated = [...selectedList];
+    updated[categoryIdx].items.push({
+      name: taskName,
+      descr: "",
+      time: "",
+      done: false,
+      subtasks: []
+    });
+    setSelectedList(updated);
+
+    // Clear input
+    setNewTaskInputs(prev => ({ ...prev, [categoryIdx]: "" }));
+
+    // Save to storage
+    const updatedAllLists = { ...allLists, [selectedListName]: updated };
+    chrome.storage?.local.set({ todoData: updatedAllLists });
+    setAllLists(updatedAllLists);
+  };
+
+
+  /////////////////
+  // Delete task //
+  /////////////////
+  const deleteTask = (categoryIdx, itemIdx) => {
+    const updated = [...selectedList];
+    updated[categoryIdx].items.splice(itemIdx, 1);
+    setSelectedList(updated);
+
+    // Save to storage
+    const updatedAllLists = { ...allLists, [selectedListName]: updated };
+    chrome.storage?.local.set({ todoData: updatedAllLists });
+    setAllLists(updatedAllLists);
+  };
+
+
+  /////////////////////////
+  // Start adding subtask //
+  /////////////////////////
+  const startAddingSubtask = (categoryIdx, itemIdx) => {
+    setAddingSubtask({ catIdx: categoryIdx, itemIdx });
+    setNewSubtaskName("");
+  };
+
+
+  //////////////////////////
+  // Cancel adding subtask //
+  //////////////////////////
+  const cancelAddingSubtask = () => {
+    setAddingSubtask(null);
+    setNewSubtaskName("");
+  };
+
+
+  /////////////////
+  // Add subtask //
+  /////////////////
+  const addSubtask = () => {
+    if (!addingSubtask || !newSubtaskName.trim()) return;
+
+    const updated = [...selectedList];
+    updated[addingSubtask.catIdx].items[addingSubtask.itemIdx].subtasks.push({
+      name: newSubtaskName.trim(),
+      descr: "",
+      time: "",
+      done: false
+    });
+    setSelectedList(updated);
+
+    // Save to storage
+    const updatedAllLists = { ...allLists, [selectedListName]: updated };
+    chrome.storage?.local.set({ todoData: updatedAllLists });
+    setAllLists(updatedAllLists);
+
+    setAddingSubtask(null);
+    setNewSubtaskName("");
+  };
+
+
+  ////////////////////
+  // Delete subtask //
+  ////////////////////
+  const deleteSubtask = (categoryIdx, itemIdx, subtaskIdx) => {
+    const updated = [...selectedList];
+    updated[categoryIdx].items[itemIdx].subtasks.splice(subtaskIdx, 1);
+    setSelectedList(updated);
+
+    // Save to storage
+    const updatedAllLists = { ...allLists, [selectedListName]: updated };
+    chrome.storage?.local.set({ todoData: updatedAllLists });
+    setAllLists(updatedAllLists);
+  };
+
+
+  ////////////////
+  // Lists View //
+  ////////////////
+  if (view === "lists") {
+    return (
+      <div className="flex flex-col h-full px-4 py-1">
+        <h2 className="text-2xl font-bold text-primary mb-4 ml-1">Your Lists</h2>
+        
+        <div className="space-y-2 flex-1 overflow-y-auto">
+          {Object.keys(allLists).length === 0 ? (
+            <div className="flex items-center justify-center h-full">
+              <span className="text-sm text-gray-500 dark:text-gray-400">No lists yet.</span>
+            </div>
+          ) : (
+            Object.entries(allLists).map(([listName, categories]) => {
+              const taskCount = getTaskCount(categories);
+              return (
+                <button
+                  key={listName}
+                  onClick={() => selectList(listName)}
+                  className="w-full bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border rounded-lg p-4 hover:border-primary transition-colors text-left"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-800 dark:text-gray-200 truncate">
+                        {listName}
+                      </h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        {taskCount} {taskCount === 1 ? 'task' : 'tasks'}
+                      </p>
+                    </div>
+                    <ChevronRight size={20} className="text-gray-400 flex-shrink-0" />
+                  </div>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  }
+
+
+  /////////////////
+  // Detail View //
+  /////////////////
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="text-center bg-light-bg-sidebar dark:bg-dark-bg-sidebar px-3 py-2 mb-3 rounded-lg border border-light-border dark:border-dark-border">
-        <span className="text-lg font-bold text-primary">To Do List</span>
-      </div>
-
-      {/* Task adding */}
-      <div className="space-y-2 mb-3">
-        {/* Input row with fixed widths */}
+      
+      {/* Header with back button */}
+      <div className="px-4 pt-1 pb-3 border-b border-light-border dark:border-dark-border space-y-3">
         <div className="flex items-center gap-2">
-          <input
-            type="text"
-            value={newTodo}
-            onChange={(e) => setNewTodo(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Add a task..."
-            className="w-[50%] bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-1.5 rounded-lg outline-none text-sm"
-          />
-          <select   
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-[50%] bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 px-3 py-1.5 rounded-lg outline-none cursor-pointer text-sm truncate"
+          <button
+            onClick={backToLists}
+            className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
           >
-            {categoryNames.map(name => (
-              <option key={name} value={name}>{name}</option>
-            ))}
-            <option value="">+ New</option>
-          </select>
+            <ArrowLeft size={20} className="text-gray-600 dark:text-gray-400" />
+          </button>
+          <h2 className="text-2xl font-bold text-primary truncate flex-1 mb-0.5">{selectedListName}</h2>
         </div>
 
-        {/* New category input - shown when "New" is selected */}
-        {selectedCategory === "" && (
-          <input
-            type="text"
-            value={newCategoryName}
-            onChange={(e) => setNewCategoryName(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="New category name..."
-            className="w-full bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-1.5 rounded-lg outline-none text-sm"
-            autoFocus
-          />
-        )}
+        {/* Search bar */}
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search tasks, categories, descriptions..."
+          className="w-full bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 rounded-lg outline-none text-sm"
+        />
 
-        {/* Add button - full width at bottom */}
-        <button 
-          onClick={addTodo} 
-          className="w-full bg-primary hover:bg-primary-hover text-white py-1.5 rounded-lg transition-colors text-sm"
-        >
-          + Add Task
-        </button>
+        {/* Expand/Collapse buttons */}
+        <div className="flex gap-2">
+          <button
+            onClick={expandAll}
+            className="flex-1 px-3 py-1.5 bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border text-gray-700 dark:text-gray-300 rounded-lg hover:border-primary transition-colors text-xs font-medium"
+          >
+            Expand All
+          </button>
+          <button
+            onClick={collapseAll}
+            className="flex-1 px-3 py-1.5 bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border text-gray-700 dark:text-gray-300 rounded-lg hover:border-primary transition-colors text-xs font-medium"
+          >
+            Collapse All
+          </button>
+        </div>
       </div>
 
-      {/* Task display */}
-      <div className="flex-1 overflow-y-auto pr-1">
-        {todos.length === 0 ? (
+      {/* Categories and tasks */}
+      <div className="flex-1 overflow-y-auto p-4">
+        {filteredList.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <span className="text-sm text-gray-500 dark:text-gray-400">No tasks yet.</span>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {searchQuery ? "No matching tasks found." : "No categories in this list."}
+            </span>
           </div>
         ) : (
-          <div className="space-y-3">
-            {todos.map((category, catIdx) => (
-              <div key={catIdx} className="space-y-2">
-                <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
-                  {category.name}
-                </h3>
-
-                {category.items.map((item, itemIdx) => {
-                  const itemKey = `${catIdx}-${itemIdx}`;
-                  const isExpanded = expandedItems.has(itemKey);
-                  const hasSubtasks = item.subtasks && item.subtasks.length > 0;
-                  const isEditing = editingItem === itemKey;
+          <div className="space-y-4">
+            {filteredList.map((category, catIdx) => {
+              // Find original index for proper referencing
+              const originalIdx = selectedList.findIndex(c => c.name === category.name);
+              const isExpanded = expandedCategories.has(originalIdx);
+              
+              return (
+                <div key={originalIdx} className="space-y-2">
                   
-                  return (
-                    <div key={itemIdx} className="bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border rounded-lg">
-                      <div className="flex items-start gap-2 px-3 py-2">
-                        <input type="checkbox" checked={item.done} onChange={() => toggleItemDone(catIdx, itemIdx)} className="mt-0.5 cursor-pointer" />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className={`text-sm font-medium text-gray-800 dark:text-gray-200 ${item.done ? 'line-through opacity-60' : ''}`}>
-                              {item.name}
-                            </span>
-                            {item.done && (
-                              <span className="text-xs bg-green-500/20 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded">
-                                ✓ Done
-                              </span>
-                            )}
-                            {item.time && (
-                              <span className="text-xs bg-blue-500/20 text-blue-700 dark:text-blue-400 px-1.5 py-0.5 rounded">
-                                ⏱ {item.time}
-                              </span>
-                            )}
-                          </div>
-                          {item.descr && <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{item.descr}</p>}
-                          {isEditing && (
-                            <div className="mt-2 space-y-1">
-                              <input
-                                type="text"
-                                placeholder="Description..."
-                                value={item.descr}
-                                onChange={(e) => updateItem(catIdx, itemIdx, 'descr', e.target.value)}
-                                className="w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 px-2 py-1 rounded-lg outline-none text-xs"
-                              />
-                              <input
-                                type="text"
-                                placeholder="Duration (e.g., 30 mins, 2 hrs)..."
-                                value={item.time}
-                                onChange={(e) => updateItem(catIdx, itemIdx, 'time', e.target.value)}
-                                className="w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 px-2 py-1 rounded-lg outline-none text-xs"
-                              />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => setEditingItem(isEditing ? null : itemKey)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors text-xs">
-                            {isEditing ? "✓" : "✎"}
-                          </button>
-                          <button onClick={() => toggleExpanded(catIdx, itemIdx)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors text-xs">
-                            {isExpanded ? "▼" : "▶"}
-                          </button>
-                          <button onClick={() => removeItem(catIdx, itemIdx)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors text-xs text-red-500">
-                            ×
-                          </button>
-                        </div>
-                      </div>
-                      {isExpanded && (
-                        <div className="px-3 pb-2 pl-8 space-y-2 border-t border-light-border dark:border-dark-border pt-2">
-                          {hasSubtasks && (
-                            <div className="space-y-2">
-                              {item.subtasks.map((subtask, subIdx) => {
-                                const subtaskKey = `${itemKey}-${subIdx}`;
-                                const isEditingSubtask = editingSubtask === subtaskKey;
+                  {/* Category header */}
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => toggleCategory(originalIdx)}
+                      className="flex items-center gap-2 text-left flex-1"
+                    >
+                      <ChevronRight 
+                        size={16} 
+                        className={`text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                      />
+                      <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wide">
+                        {category.name}
+                      </h3>
+                    </button>
+                    <button
+                      onClick={() => deleteCategory(originalIdx)}
+                      className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
+                    >
+                      <Trash2 size={14} className="text-red-500" />
+                    </button>
+                  </div>
+
+                  {/* Tasks - shown when expanded */}
+                  {isExpanded && (
+                    <div className="space-y-2 pl-2">
+                      
+                      {/* Existing tasks */}
+                      {category.items.map((item, itemIdx) => {
+                        const isEditing = editingTask?.catIdx === originalIdx && editingTask?.itemIdx === itemIdx;
+                        
+                        return (
+                          <div
+                            key={itemIdx}
+                            className="bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border rounded-lg p-3"
+                          >
+                            {isEditing ? (
+                              
+                              // Edit mode
+                              <div className="space-y-2">
+                                <input
+                                  type="text"
+                                  value={editingTaskData.name}
+                                  onChange={(e) => setEditingTaskData({ ...editingTaskData, name: e.target.value })}
+                                  className="w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 px-2 py-1 rounded outline-none text-sm"
+                                  placeholder="Task name"
+                                />
+                                <input
+                                  type="text"
+                                  value={editingTaskData.descr}
+                                  onChange={(e) => setEditingTaskData({ ...editingTaskData, descr: e.target.value })}
+                                  className="w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 px-2 py-1 rounded outline-none text-xs"
+                                  placeholder="Description"
+                                />
+                                <input
+                                  type="text"
+                                  value={editingTaskData.time}
+                                  onChange={(e) => setEditingTaskData({ ...editingTaskData, time: e.target.value })}
+                                  className="w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 px-2 py-1 rounded outline-none text-xs"
+                                  placeholder="Duration (e.g., 30 mins)"
+                                />
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={saveEditedTask}
+                                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors text-xs"
+                                  >
+                                    <Check size={14} />
+                                    Save
+                                  </button>
+                                  <button
+                                    onClick={cancelEditingTask}
+                                    className="flex-1 flex items-center justify-center gap-1 px-2 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded transition-colors text-xs"
+                                  >
+                                    <X size={14} />
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              
+                              // View mode
+                              <div className="flex items-start gap-2">
                                 
-                                return (
-                                  <div key={subIdx} className="bg-white/30 dark:bg-black/20 rounded-lg p-2 border border-light-border/50 dark:border-dark-border/50">
-                                    <div className="flex items-start gap-2">
-                                      <input type="checkbox" checked={subtask.done} onChange={() => toggleSubtaskDone(catIdx, itemIdx, subIdx)} className="mt-0.5 cursor-pointer" />
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <span className={`text-xs font-medium text-gray-800 dark:text-gray-200 ${subtask.done ? 'line-through opacity-60' : ''}`}>
-                                            {subtask.name}
-                                          </span>
-                                          {subtask.done && (
-                                            <span className="text-xs bg-green-500/20 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded">
-                                              ✓ Done
-                                            </span>
-                                          )}
-                                          {subtask.time && (
-                                            <span className="text-xs bg-blue-500/10 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded">
-                                              ⏱ {subtask.time}
-                                            </span>
-                                          )}
-                                        </div>
-                                        {subtask.descr && <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{subtask.descr}</p>}
-                                        {isEditingSubtask && (
-                                          <div className="mt-2 space-y-1">
-                                            <input
-                                              type="text"
-                                              placeholder="Description..."
-                                              value={subtask.descr}
-                                              onChange={(e) => updateSubtask(catIdx, itemIdx, subIdx, 'descr', e.target.value)}
-                                              className="w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 px-2 py-1 rounded-lg outline-none text-xs"
-                                            />
-                                            <input
-                                              type="text"
-                                              placeholder="Duration..."
-                                              value={subtask.time}
-                                              onChange={(e) => updateSubtask(catIdx, itemIdx, subIdx, 'time', e.target.value)}
-                                              className="w-full bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 px-2 py-1 rounded-lg outline-none text-xs"
-                                            />
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <button onClick={() => setEditingSubtask(isEditingSubtask ? null : subtaskKey)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors text-xs">
-                                          {isEditingSubtask ? "✓" : "✎"}
-                                        </button>
-                                        <button onClick={() => removeSubtask(catIdx, itemIdx, subIdx)} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors text-xs text-red-500">
-                                          ×
-                                        </button>
-                                      </div>
+                                {/* Checkbox */}
+                                <button
+                                  onClick={() => toggleTaskDone(originalIdx, itemIdx)}
+                                  className="mt-0.5 flex-shrink-0"
+                                >
+                                  {item.done ? (
+                                    <CheckSquare size={18} className="text-green-600 dark:text-green-400" />
+                                  ) : (
+                                    <Square size={18} className="text-gray-400" />
+                                  )}
+                                </button>
+
+                                {/* Task content */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className={`text-sm font-medium text-gray-800 dark:text-gray-200 ${
+                                      item.done ? 'line-through opacity-60' : ''
+                                    }`}>
+                                      {item.name}
+                                    </span>
+                                    <div className="flex gap-1 flex-shrink-0">
+                                      <button
+                                        onClick={() => startEditingTask(originalIdx, itemIdx)}
+                                        className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                      >
+                                        <Edit3 size={14} className="text-blue-500" />
+                                      </button>
+                                      <button
+                                        onClick={() => deleteTask(originalIdx, itemIdx)}
+                                        className="p-1 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
+                                      >
+                                        <Trash2 size={14} className="text-red-500" />
+                                      </button>
                                     </div>
                                   </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                          <div className="flex items-center gap-1 pt-1">
-                            <input
-                              type="text"
-                              placeholder="Add subtask..."
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  addSubtask(catIdx, itemIdx, e.target.value);
-                                  e.target.value = '';
-                                }
-                              }}
-                              className="flex-1 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 px-2 py-1 rounded-lg outline-none text-xs"
-                            />
-                            <button
-                              onClick={(e) => {
-                                const input = e.target.previousElementSibling;
-                                addSubtask(catIdx, itemIdx, input.value);
-                                input.value = '';
-                              }}
-                              className="px-2 py-1 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors text-xs"
-                            >
-                              +
-                            </button>
+
+                                  {/* Description */}
+                                  {item.descr && (
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                      {item.descr}
+                                    </p>
+                                  )}
+
+                                  {/* Time */}
+                                  {item.time && (
+                                    <div className="flex items-center gap-1 mt-1">
+                                      <Clock size={12} className="text-blue-500" />
+                                      <span className="text-xs text-blue-700 dark:text-blue-400">
+                                        {item.time}
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {/* Subtasks */}
+                                  {item.subtasks && item.subtasks.length > 0 && (
+                                    <div className="mt-2 space-y-1 pl-4 border-l-2 border-gray-200 dark:border-gray-700">
+                                      {item.subtasks.map((subtask, subIdx) => (
+                                        <div key={subIdx} className="flex items-center gap-2 group">
+                                          <button
+                                            onClick={() => toggleSubtaskDone(originalIdx, itemIdx, subIdx)}
+                                            className="flex-shrink-0"
+                                          >
+                                            {subtask.done ? (
+                                              <CheckSquare size={14} className="text-green-600 dark:text-green-400" />
+                                            ) : (
+                                              <Square size={14} className="text-gray-400" />
+                                            )}
+                                          </button>
+                                          <span className={`text-xs text-gray-700 dark:text-gray-300 flex-1 ${
+                                            subtask.done ? 'line-through opacity-60' : ''
+                                          }`}>
+                                            {subtask.name}
+                                          </span>
+                                          <button
+                                            onClick={() => deleteSubtask(originalIdx, itemIdx, subIdx)}
+                                            className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-all"
+                                          >
+                                            <Trash2 size={12} className="text-red-500" />
+                                          </button>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* Add subtask */}
+                                  {addingSubtask?.catIdx === originalIdx && addingSubtask?.itemIdx === itemIdx ? (
+                                    <div className="mt-2 flex items-center gap-2">
+                                      <input
+                                        type="text"
+                                        value={newSubtaskName}
+                                        onChange={(e) => setNewSubtaskName(e.target.value)}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") addSubtask();
+                                          if (e.key === "Escape") cancelAddingSubtask();
+                                        }}
+                                        placeholder="Subtask name..."
+                                        className="flex-1 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 px-2 py-1 rounded outline-none text-xs"
+                                        autoFocus
+                                      />
+                                      <button
+                                        onClick={addSubtask}
+                                        className="p-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                                      >
+                                        <Check size={14} />
+                                      </button>
+                                      <button
+                                        onClick={cancelAddingSubtask}
+                                        className="p-1 bg-gray-500 hover:bg-gray-600 text-white rounded transition-colors"
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      onClick={() => startAddingSubtask(originalIdx, itemIdx)}
+                                      className="mt-2 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary transition-colors"
+                                    >
+                                      <Plus size={12} />
+                                      Add subtask
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      )}
+                        );
+                      })}
+
+                      {/* Add new task input */}
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={newTaskInputs[originalIdx] || ""}
+                          onChange={(e) => setNewTaskInputs(prev => ({ ...prev, [originalIdx]: e.target.value }))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") addTask(originalIdx);
+                          }}
+                          placeholder="Add task..."
+                          className="flex-1 bg-light-bg dark:bg-dark-bg border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 px-3 py-2 rounded-lg outline-none text-sm"
+                        />
+                        <button
+                          onClick={() => addTask(originalIdx)}
+                          className="p-2 bg-primary hover:bg-primary-hover text-white rounded-lg transition-colors"
+                        >
+                          <Plus size={18} />
+                        </button>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            ))}
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
