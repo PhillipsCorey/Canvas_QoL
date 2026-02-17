@@ -1,8 +1,9 @@
 import { ChevronDown, Mic, SendHorizontal, Settings } from "lucide-react";
 import { useEffect, useState } from "react";
 import TodoList from "../components/todoList";
-import { todoPlaintext, todoJSON, isInjectionLike } from "./navigator";
-import { TodoBasicSchema } from "../shared/todo_schema";
+import { todoPlaintext, todoJSON } from "./navigator";
+import { isInjectionLike, extractValidatedTodo } from "./chat_helpers";
+
 
 export default function Chat() {
   const [chatMode, setChatMode] = useState("query");
@@ -68,41 +69,24 @@ const handleSend = async () => {
 
   const responsePlaintext = await todoPlaintext(query);
   const outputPlaintext = responsePlaintext.choices[0].message.content;
-  console.log(outputPlaintext);
 
   setHeroText("Dang bro this week sucks...");
 
-  const tooWhitespacey = (s) => {
-    const len = s.length || 1;
-    const ws = (s.match(/\s/g) || []).length;
-    const maxRun = Math.max(...(s.match(/\n+/g) || [""]).map((x) => x.length));
-    return ws / len > 0.45 || maxRun > 20;
-  };
-
   let parsed;
 
+  // The JSON formatting step sometimes drifts, so we attempt this 3 times
+  // and retry if the output was malformed.
   for (let attempt = 0; attempt < 3; attempt++) {
     const responseJSON = await todoJSON(outputPlaintext);
-
-    const textBlocks = responseJSON.output
-      .flatMap((o) => o.content)
-      .filter((c) => c.type === "output_text" && typeof c.text === "string");
-
-    const outputJSON = textBlocks[textBlocks.length - 1].text;
-
-    if (tooWhitespacey(outputJSON)) continue;
-
-    const candidate = JSON.parse(outputJSON);
-
-    const validated = TodoBasicSchema.safeParse(candidate);
-    if (validated.success) {
-      parsed = validated.data;
+    const validated = extractValidatedTodo(responseJSON);
+    if (validated) {
+      parsed = validated;
       break;
     }
   }
 
   if (!parsed) {
-    setHeroText("Couldn’t parse the response. Try again.");
+    setHeroText("Couldn't parse the response. Try again.");
     return;
   }
 

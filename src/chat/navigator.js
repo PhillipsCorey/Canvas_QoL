@@ -132,16 +132,3 @@ export async function todoJSON(llm1_output) {
   return await response.json();
 }
 
-export const isInjectionLike = (input) => {
-  const suspicious = [
-    "ignore",
-    "admin",
-    "instructions",
-    "system prompt",
-    "override",
-    "developer mode"
-  ];
-
-  const lower = input.toLowerCase();
-  return suspicious.some(word => lower.includes(word));
-};
