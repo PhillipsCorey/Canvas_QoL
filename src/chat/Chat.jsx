@@ -1,9 +1,10 @@
 import { ChevronDown, Mic, SendHorizontal, Settings } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import TodoList from "../components/todoList";
 import { todoPlaintext, todoJSON } from "./navigator";
 import { isInjectionLike, extractValidatedTodo } from "./chat_helpers";
 
+import SpeechService from "./speech";
 
 export default function Chat() {
   const [chatMode, setChatMode] = useState("query");
@@ -13,6 +14,9 @@ export default function Chat() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [pastQueries, setPastQueries] = useState([])
 
+  const speechRef = useRef(null);
+  const [isListening, setIsListening] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState("");
 
   //////////////////////////////////////////////////////////////////
   // Check browswer or OS dark mode prefrence and default to that //
@@ -40,6 +44,18 @@ export default function Chat() {
     chrome.storage?.local.get(["pastFiveQueries"], (result) => {
       setPastQueries(result.pastFiveQueries || []);
     });
+  }, []);
+
+  useEffect(() => {
+    speechRef.current = new SpeechService();
+
+    speechRef.current.onTranscript((text) => {
+      setLiveTranscript(text); // store live transcript
+    });
+
+    return () => {
+      speechRef.current?.stop();
+    };
   }, []);
 
   ////////////////////////////////
@@ -102,7 +118,21 @@ const handleSend = async () => {
   ////////////////////////
   const handleMic = () => {
     console.log("Mic clicked");
-    // TODO: Mic logic
+    if (!speechRef.current) return;
+
+    if (isListening) {
+      speechRef.current.stop();
+      setIsListening(false);
+
+      const finalTranscript = speechRef.current.getTranscript().trim();
+      if (finalTranscript) setQuery(finalTranscript);
+
+    } else {
+      speechRef.current.resetTranscript();
+      setLiveTranscript("");
+      speechRef.current.start();
+      setIsListening(true);
+    }
   };
 
 
@@ -214,7 +244,7 @@ const handleSend = async () => {
                       className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
                       aria-label="Voice input"
                     >
-                      <Mic size={20} className="text-gray-600 dark:text-gray-200" />
+                      <Mic size={20} className={isListening ? "text-red-500" : "text-gray-600 dark:text-gray-200"}/>
                     </button>
                     
                     <button
