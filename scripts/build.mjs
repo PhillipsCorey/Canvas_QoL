@@ -20,9 +20,16 @@ async function run() {
     outfile: "dist/background.js",
   });
 
+  // await esbuild({
+  //   ...common,
+  //   entryPoints: ["src/content/contentScript.js"],
+  //   outfile: "dist/content.js",
+  // });
+
   await esbuild({
     ...common,
-    entryPoints: ["src/content/contentScript.js"],
+    format: "iife",
+    entryPoints: ["src/content/content.js"],
     outfile: "dist/content.js",
   });
 
