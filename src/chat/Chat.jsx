@@ -51,6 +51,7 @@ export default function Chat() {
 
     speechRef.current.onTranscript((text) => {
       setLiveTranscript(text); // store live transcript
+      setQuery(text);
     });
 
     return () => {
