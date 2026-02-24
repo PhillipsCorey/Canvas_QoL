@@ -33,11 +33,11 @@ async function run() {
     outfile: "dist/content.js",
   });
 
-  await esbuild({
-    ...common,
-    entryPoints: ["src/content/catchCanvas.js"],
-    outfile: "dist/catchCanvas.js"
-  })
+  // await esbuild({
+  //   ...common,
+  //   entryPoints: ["src/content/catchCanvas.js"],
+  //   outfile: "dist/catchCanvas.js"
+  // })
 
   await viteBuild();
 }
