@@ -17,10 +17,6 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"]
-    },
-    {
-      "matches": ["https://ufl.instructure.com/*"],
-      "js": ["catchCanvas.js"]
     }
   ],
   "icons": {
