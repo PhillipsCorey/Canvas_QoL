@@ -1,8 +1,10 @@
 import { ChevronDown, Mic, Rabbit, SendHorizontal, Settings, ToggleLeft, ToggleRight, Turtle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import TodoList from "../components/todoList";
 import { todoPlaintext, todoJSON } from "./navigator";
-import { TodoBasicSchema } from "../shared/todo_schema";
+import { isInjectionLike, extractValidatedTodo } from "./chat_helpers";
+
+import SpeechService from "./speech";
 
 export default function Chat() {
   const [chatMode, setChatMode] = useState("query");
@@ -10,10 +12,14 @@ export default function Chat() {
   const [query, setQuery] = useState("");
   const [responseList, setResponseList] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [pastQueries, setPastQueries] = useState([])
   const [availableLists, setAvailableLists] = useState([]);
   const [selectedList, setSelectedList] = useState("");
   const [contextToggle, setContextToggle] = useState(false);
 
+  const speechRef = useRef(null);
+  const [isListening, setIsListening] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState("");
 
   //////////////////////////////////////////////////////////////////
   // Check browswer or OS dark mode prefrence and default to that //
@@ -34,6 +40,27 @@ export default function Chat() {
     });
   }, []);
 
+  ///////////////////////////////////////
+  // Pull previously sent queries on mount  //
+  ///////////////////////////////////////
+  useEffect(() => {
+    chrome.storage?.local.get(["pastFiveQueries"], (result) => {
+      setPastQueries(result.pastFiveQueries || []);
+    });
+  }, []);
+
+  useEffect(() => {
+    speechRef.current = new SpeechService();
+
+    speechRef.current.onTranscript((text) => {
+      setLiveTranscript(text); // store live transcript
+      setQuery(text);
+    });
+
+    return () => {
+      speechRef.current?.stop();
+    };
+  }, []);
 
   ///////////////////////////////////////////
   // Load available lists from localStorage //
@@ -50,53 +77,56 @@ export default function Chat() {
   ////////////////////////////////
   // Send the user query to LLM //
   ////////////////////////////////
-  const handleSend = async () => {
-    if (query.trim()) {
-      console.log("Sending:", query);
+const handleSend = async () => {
+  if (!query.trim()) return;
 
-      setHeroText("Processing your word vomit...");
+  setQuery("");
 
-      //  first we make one pass to OSS 120B to turn the user's ramblings 
-      // into a markdown-summarized list of what they need to do
-      const responsePlaintext = await todoPlaintext(query); 
-      const outputPlaintext = responsePlaintext.choices[0].message.content;
-      console.log(outputPlaintext);
+  if (isInjectionLike(query)) {
+    setHeroText("Nice try.");
+    return;
+  }
 
-      setHeroText("Dang bro this week sucks...");
+  // update history (max 5)
+  const updatedQueries = [query, ...pastQueries].slice(0, 5);
 
-      let parsed;
+  setPastQueries(updatedQueries);
 
-      // following this, we take the cleanly markdown-formatted list
-      // and we try to pass this back to OSS 120B in order to turn it from
-      // simple markdown formatting to our desired structured output, TodoBasicSchema
-      // sometimes the model fails and does not produce useful output, so we have this
-      // logic in a loop which will try multiple times if the output cannot be parsed correctly.
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const responseJSON = await todoJSON(outputPlaintext);
-        console.log(responseJSON);
+  chrome.storage?.local.set({
+    pastFiveQueries: updatedQueries
+  });
 
-        const outputJSON = responseJSON.output
-          .flatMap((o) => o.content)
-          .find((c) => c.type === "output_text").text;
+  console.log("Sending:", query);
+  setHeroText("Processing your word vomit...");
 
-        console.log(outputJSON);
+  const responsePlaintext = await todoPlaintext(query);
+  const outputPlaintext = responsePlaintext.choices[0].message.content;
 
-        parsed = JSON.parse(outputJSON);
+  setHeroText("Dang bro this week sucks...");
 
-        const validated = TodoBasicSchema.safeParse(parsed);
-        if (validated.success) {
-          parsed = validated.data;
-          break;
-        }
-      }
+  let parsed;
 
-      // if we escape the loop, logic is valid and we're free to update state.
-      setResponseList(parsed.todo);
-      setChatMode("result");
-      setHeroText("What's on the schedule this week?");
-      setQuery("");
+  // The JSON formatting step sometimes drifts, so we attempt this 3 times
+  // and retry if the output was malformed.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const responseJSON = await todoJSON(outputPlaintext);
+    const validated = extractValidatedTodo(responseJSON);
+    if (validated) {
+      parsed = validated;
+      break;
     }
-  };
+  }
+
+  if (!parsed) {
+    setHeroText("Couldn't parse the response. Try again.");
+    return;
+  }
+
+  setResponseList(parsed.todo);
+  setChatMode("result");
+  setHeroText("What's on the schedule this week?");
+  setQuery("");
+};
 
 
   ////////////////////////
@@ -104,7 +134,21 @@ export default function Chat() {
   ////////////////////////
   const handleMic = () => {
     console.log("Mic clicked");
-    // TODO: Mic logic
+    if (!speechRef.current) return;
+
+    if (isListening) {
+      speechRef.current.stop();
+      setIsListening(false);
+
+      const finalTranscript = speechRef.current.getTranscript().trim();
+      if (finalTranscript) setQuery(finalTranscript);
+
+    } else {
+      speechRef.current.resetTranscript();
+      setLiveTranscript("");
+      speechRef.current.start();
+      setIsListening(true);
+    }
   };
 
 
