@@ -6,9 +6,8 @@ import { MoreHorizontal, Star, Pencil, Trash2 } from "lucide-react";
 /////////////////////////////
 export default function ListRowItem({
   listName, favorites, hoveredList, menuOpenList, renamingList, renameValue,
-  setHoveredList, setMenuOpenList, setRenameValue,
-  handleSelectList, handleFavorite, handleStartRename, handleConfirmRename,
-  handleCancelRename, handleDeleteList, toggleMenu, menuRef,
+  setHoveredList, setRenameValue, handleSelectList, handleFavorite, handleStartRename,
+  handleConfirmRename, handleCancelRename, handleDeleteList, toggleMenu, menuRef,
 }) {
   return (
     <div

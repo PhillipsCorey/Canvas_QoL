@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import {ArrowLeft, Plus, Trash2, Pencil, Check, X, ChevronDown, ChevronRight, Clock, Calendar, CheckSquare, Square, BrainCog} from "lucide-react";
+import { Plus, Trash2, Pencil, Check, X, ChevronDown, ChevronRight, Clock, Calendar, CheckSquare, Square } from "lucide-react";
 
 
-export default function ListDetailPanel({ listName, onListUpdated }) {
+export default function ListDetailPanel({ listName, onListUpdated, showQueryWithContext }) {
   const [categories, setCategories] = useState([]);
   const [expandedCategories, setExpandedCategories] = useState(new Set());
   const [addingCategory, setAddingCategory] = useState(false);
@@ -68,7 +68,7 @@ export default function ListDetailPanel({ listName, onListUpdated }) {
   // Edit list with LLM //
   ////////////////////////
   const editList = () => {
-    console.log("[tasqe] Edit this list with LLM")
+    showQueryWithContext?.(listName)
   };
 
 

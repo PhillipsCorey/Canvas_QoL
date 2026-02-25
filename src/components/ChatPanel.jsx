@@ -1,17 +1,11 @@
 import { useState } from "react";
-import {
-  BrainCircuit, ChevronDown, ChevronRight, Mic, SendHorizontal, Settings,
-  Clock, Calendar, CheckSquare, Square, Pencil,
-} from "lucide-react";
+import { BrainCircuit, ChevronDown, ChevronRight, Mic, SendHorizontal, Clock, Calendar, CheckSquare, Square } from "lucide-react";
 
 
 export default function ChatPanel({
-  chatMode, setChatMode, heroText, setHeroText,
-  query, setQuery, responseList, responseListName, setResponseList,
-  availableLists, selectedList, setSelectedList,
-  contextToggle, setContextToggle,
-  isListening, lastQuery, handleMic, handleSend, handleKeyDown,
-  handleReplace, handleDiscard,
+  chatMode, setChatMode, heroText, query, setQuery, responseList, responseListName,
+  setResponseList, availableLists, selectedList, setSelectedList, contextToggle,
+  setContextToggle,lastQuery, handleMic, handleSend, handleKeyDown, handleReplace, handleDiscard,
 }) {
   const [expandedCategories, setExpandedCategories] = useState(new Set());
   const [expandedTasks, setExpandedTasks] = useState(new Set());
@@ -69,7 +63,7 @@ export default function ChatPanel({
   };
 
 
-  ///////////////////////////////////
+  //////////////////////////////////
   // Get subtask completion stats //
   //////////////////////////////////
   const getSubtaskStats = (item) => {
@@ -80,9 +74,9 @@ export default function ChatPanel({
   };
 
 
-  ////////////////////////////////////////
-  // Get completion stats for category //
   ///////////////////////////////////////
+  // Get completion stats for category //
+  //////////////////////////////////////
   const getCategoryStats = (category) => {
     const total = category.items.length;
     const done = category.items.filter((item) => item.done).length;
@@ -90,7 +84,7 @@ export default function ChatPanel({
   };
 
 
-  //////////////////////////////
+  /////////////////////////////
   // Format due date display //
   /////////////////////////////
   const formatDueDate = (dateStr) => {
@@ -121,7 +115,7 @@ export default function ChatPanel({
   };
 
 
-  //////////////////////////////
+  /////////////////////////////
   // Accept changes to list  //
   /////////////////////////////
   const handleAcceptChanges = () => {
@@ -129,7 +123,7 @@ export default function ChatPanel({
   };
 
 
-  //////////////////////////
+  /////////////////////////
   // Edit prompt (retry) //
   /////////////////////////
   const handleEditPrompt = () => {
@@ -141,7 +135,7 @@ export default function ChatPanel({
   };
 
 
-  /////////////////////
+  ////////////////////
   // Cancel / reset //
   ////////////////////
   const handleCancel = () => {
@@ -151,9 +145,9 @@ export default function ChatPanel({
   };
 
 
-  //////////////
-  // Render  //
-  /////////////
+  ////////////
+  // Render //
+  ////////////
   return (
     <div className="flex flex-1 flex-col bg-light-bg dark:bg-dark-bg">
 

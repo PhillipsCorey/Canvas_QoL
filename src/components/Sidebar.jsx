@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { PanelLeftClose, Plus, Search, Settings } from "lucide-react";
+import { Plus, Search, Settings } from "lucide-react";
 import ListRowItem from "./ListRowItem";
 
 
@@ -141,7 +141,7 @@ export default function Sidebar({ onSelectList, onSelectNewList }) {
   // Open preferences //
   //////////////////////
   const handlePreferences = () => {
-    console.log("[tasqe] Open preferences");
+    console.log("Open preferences");
   };
 
 
@@ -178,7 +178,6 @@ export default function Sidebar({ onSelectList, onSelectNewList }) {
   // Rename a list //
   ///////////////////
   const handleStartRename = (listName) => {
-    console.log(`[tasqe] Start rename: ${listName}`);
     setRenamingList(listName);
     setRenameValue(listName);
     setMenuOpenList(null);

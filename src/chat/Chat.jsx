@@ -57,7 +57,7 @@ export default function Chat() {
 
   ///////////////////////////////
   // Initialize speech service //
-  //////////////////////////////
+  ///////////////////////////////
   useEffect(() => {
     speechRef.current = new SpeechService();
 
@@ -99,7 +99,6 @@ export default function Chat() {
     setPastQueries(updatedQueries);
     chrome.storage?.local.set({ pastFiveQueries: updatedQueries });
 
-    console.log("Sending:", query);
     setHeroText("Processing your word vomit...");
 
     const responsePlaintext = await todoPlaintext(query);
@@ -136,7 +135,6 @@ export default function Chat() {
   // Handle voice input //
   ////////////////////////
   const handleMic = () => {
-    console.log("Mic clicked");
     if (!speechRef.current) return;
 
     if (isListening) {
@@ -212,6 +210,11 @@ export default function Chat() {
     setSelectedList("");
   };
 
+  const showQueryWithContext = (listName) => {
+    setActiveListName(null);
+    setMainView("chat");
+    setSelectedList(listName);
+  };
 
   ////////////
   // Render //
@@ -254,6 +257,7 @@ export default function Chat() {
         ) : (
           <ListDetailsPanel
             listName={activeListName}
+            showQueryWithContext={showQueryWithContext}
             onListUpdated={() => setRefreshTrigger(prev => prev + 1)}
           />
         )}
