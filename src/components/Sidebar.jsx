@@ -167,7 +167,7 @@ export default function Sidebar({ onSelectList, onCollapse }) {
 
       {/* Title and Collapse Button */}
       <div className="flex items-center justify-between px-2 py-1">
-        <span className="text-3xl ml-1 font-bold text-primary tracking-tight">tasqe</span>
+        <span className="text-3xl font-bold text-primary tracking-tight">tasqe</span>
         <button
           onClick={handleCollapse}
           className="p-1.5 mt-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
@@ -222,7 +222,7 @@ export default function Sidebar({ onSelectList, onCollapse }) {
             {/* Favorites section */}
             {getFavoriteListNames().length > 0 && (
               <div className="mb-2">
-                <span className="px-2 ml-1 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                <span className="px-2 ml-0.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                   Favorites
                 </span>
                 {getFavoriteListNames().map((listName) => (
@@ -253,7 +253,7 @@ export default function Sidebar({ onSelectList, onCollapse }) {
             {/* Recents section */}
             {getRecentListNames().length > 0 && (
               <div>
-                <span className="px-2 ml-1 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                <span className="px-2 ml-0.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
                   Recents
                 </span>
                 {getRecentListNames().map((listName) => (
