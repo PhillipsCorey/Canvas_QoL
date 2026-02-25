@@ -1,6 +1,5 @@
 import { Settings } from "lucide-react";
 import { useEffect } from "react";
-import TodoList from "../components/todoList";
 
 export default function Popup() {
   useEffect(() => {
