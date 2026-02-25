@@ -1,11 +1,9 @@
 import { TodoBasicSchema } from "../shared/todo_schema";
 
 export const tooWhitespacey = (s) => {
-    const len = s.length || 1;
-    const ws = (s.match(/\s/g) || []).length;
-    const maxRun = Math.max(...(s.match(/\n+/g) || [""]).map((x) => x.length));
-    return ws / len > 0.45 || maxRun > 20;
-  };
+  const maxRun = Math.max(...(s.match(/\n+/g) || [""]).map(x => x.length));
+  return maxRun > 20;
+};
 
 export const isInjectionLike = (input) => {
   const suspicious = [

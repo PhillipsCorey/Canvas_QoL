@@ -7,7 +7,7 @@ A Chrome Web Extension aimed at first-generation university students, aiming to 
 - npm ≥ v9
 
 ## 1: Clone repo
-`git clone https://github.com/PhillipsCorey/Canvas_QoL.git`
+`git clone https://github.com/PhillipsCorey/tasque.git`
 
 ## 2: Install dependencies
 ```
