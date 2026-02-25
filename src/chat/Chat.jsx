@@ -10,7 +10,6 @@ import SpeechService from "./speech";
 export default function Chat() {
   const [mainView, setMainView] = useState("chat"); // "chat" or "listDetail"
   const [activeListName, setActiveListName] = useState(null);
-
   const [chatMode, setChatMode] = useState("query");
   const [heroText, setHeroText] = useState("What's on the schedule this week?");
   const [query, setQuery] = useState("");
@@ -20,7 +19,6 @@ export default function Chat() {
   const [availableLists, setAvailableLists] = useState([]);
   const [selectedList, setSelectedList] = useState("");
   const [contextToggle, setContextToggle] = useState(false);
-
   const speechRef = useRef(null);
   const [isListening, setIsListening] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState("");
@@ -235,6 +233,11 @@ export default function Chat() {
     setMainView("listDetail");
   };
 
+  const handleSelectNewList = () => {
+    setActiveListName(null);
+    setMainView("chat");
+  };
+
 
   ////////////
   // Render //
@@ -246,7 +249,7 @@ export default function Chat() {
 
         {/* Left Sidebar */}
         <div className="w-72 p-4 border-r border-light-border dark:border-dark-border bg-light-bg-sidebar dark:bg-dark-bg-sidebar">
-          <Sidebar key={refreshTrigger} onSelectList={handleSelectList} />
+          <Sidebar key={refreshTrigger} onSelectList={handleSelectList} onSelectNewList={handleSelectNewList}/>
         </div>
 
         {/* Right Side - Switches between Chat and List Detail */}

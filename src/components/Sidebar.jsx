@@ -3,7 +3,7 @@ import { PanelLeftClose, Plus, Search, Settings } from "lucide-react";
 import ListRowItem from "./ListRowItem";
 
 
-export default function Sidebar({ onSelectList, onCollapse }) {
+export default function Sidebar({ onSelectList, onCollapse, onSelectNewList }) {
   const [allLists, setAllLists] = useState({});
   const [favorites, setFavorites] = useState(new Set());
   const [hoveredList, setHoveredList] = useState(null);
@@ -26,9 +26,9 @@ export default function Sidebar({ onSelectList, onCollapse }) {
   }, []);
 
 
-  ///////////////////////////////////////////////
+  //////////////////////////////////////////
   // Close ellipsis menu on outside click //
-  ///////////////////////////////////////////////
+  //////////////////////////////////////////
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
@@ -41,17 +41,17 @@ export default function Sidebar({ onSelectList, onCollapse }) {
   }, []);
 
 
-  //////////////////////////
-  // Get favorite lists  //
   /////////////////////////
+  // Get favorite lists //
+  ////////////////////////
   const getFavoriteListNames = () => {
     return Object.keys(allLists).filter((name) => favorites.has(name));
   };
 
 
-  ////////////////////////
-  // Get recent lists  //
   ///////////////////////
+  // Get recent lists //
+  //////////////////////
   const getRecentListNames = () => {
     return Object.keys(allLists).filter((name) => !favorites.has(name));
   };
@@ -61,47 +61,46 @@ export default function Sidebar({ onSelectList, onCollapse }) {
   // Create new list //
   /////////////////////
   const handleNewList = () => {
-    console.log("[tasqe] Create new list");
+    onSelectNewList?.();
   };
 
 
-  ////////////////////
-  // Search lists  //
   ///////////////////
+  // Search lists //
+  //////////////////
   const handleSearch = () => {
     console.log("[tasqe] Open search");
   };
 
 
-  ////////////////////////
-  // Open preferences  //
   ///////////////////////
+  // Open preferences //
+  //////////////////////
   const handlePreferences = () => {
     console.log("[tasqe] Open preferences");
   };
 
 
-  /////////////////////////
-  // Collapse sidebar   //
-  ////////////////////////
+  ///////////////////////
+  // Collapse sidebar //
+  //////////////////////
   const handleCollapse = () => {
     console.log("[tasqe] Collapse sidebar");
     onCollapse?.();
   };
 
 
-  ///////////////////////
-  // Select a list    //
-  //////////////////////
+  ////////////////////
+  // Select a list //
+  ///////////////////
   const handleSelectList = (listName) => {
-    console.log(`[tasqe] Selected list: ${listName}`);
     onSelectList?.(listName);
   };
 
 
-  /////////////////////////
-  // Favorite a list    //
-  ////////////////////////
+  //////////////////////
+  // Favorite a list //
+  /////////////////////
   const handleFavorite = (listName) => {
     console.log(`[tasqe] Toggle favorite: ${listName}`);
     setFavorites((prev) => {
@@ -119,9 +118,9 @@ export default function Sidebar({ onSelectList, onCollapse }) {
   };
 
 
-  //////////////////////
-  // Rename a list   //
-  /////////////////////
+  ////////////////////
+  // Rename a list //
+  ///////////////////
   const handleStartRename = (listName) => {
     console.log(`[tasqe] Start rename: ${listName}`);
     setRenamingList(listName);
@@ -141,27 +140,27 @@ export default function Sidebar({ onSelectList, onCollapse }) {
   };
 
 
-  //////////////////////
-  // Delete a list   //
-  /////////////////////
+  ////////////////////
+  // Delete a list //
+  ///////////////////
   const handleDeleteList = (listName) => {
     console.log(`[tasqe] Delete list: ${listName}`);
     setMenuOpenList(null);
   };
 
 
-  ////////////////////////
-  // Toggle menu open  //
   ///////////////////////
+  // Toggle menu open //
+  //////////////////////
   const toggleMenu = (e, listName) => {
     e.stopPropagation();
     setMenuOpenList((prev) => (prev === listName ? null : listName));
   };
 
 
-  //////////////
-  // Render  //
   /////////////
+  // Render //
+  ////////////
   return (
     <div className="flex flex-col h-full">
 
