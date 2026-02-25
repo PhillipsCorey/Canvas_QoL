@@ -1,9 +1,10 @@
-import { ChevronDown, Mic, SendHorizontal, Settings } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ChevronDown, Mic, Rabbit, SendHorizontal, Settings, ToggleLeft, ToggleRight, Turtle } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import TodoList from "../components/todoList";
 import { todoPlaintext, todoJSON } from "./navigator";
 import { isInjectionLike, extractValidatedTodo } from "./chat_helpers";
 
+import SpeechService from "./speech";
 
 export default function Chat() {
   const [chatMode, setChatMode] = useState("query");
@@ -12,7 +13,13 @@ export default function Chat() {
   const [responseList, setResponseList] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [pastQueries, setPastQueries] = useState([])
+  const [availableLists, setAvailableLists] = useState([]);
+  const [selectedList, setSelectedList] = useState("");
+  const [contextToggle, setContextToggle] = useState(false);
 
+  const speechRef = useRef(null);
+  const [isListening, setIsListening] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState("");
 
   //////////////////////////////////////////////////////////////////
   // Check browswer or OS dark mode prefrence and default to that //
@@ -41,6 +48,31 @@ export default function Chat() {
       setPastQueries(result.pastFiveQueries || []);
     });
   }, []);
+
+  useEffect(() => {
+    speechRef.current = new SpeechService();
+
+    speechRef.current.onTranscript((text) => {
+      setLiveTranscript(text); // store live transcript
+      setQuery(text);
+    });
+
+    return () => {
+      speechRef.current?.stop();
+    };
+  }, []);
+
+  ///////////////////////////////////////////
+  // Load available lists from localStorage //
+  ///////////////////////////////////////////
+  useEffect(() => {
+    chrome.storage?.local.get(["todoData"], (result) => {
+      const data = result?.todoData || {};
+      const listNames = Object.keys(data);
+      setAvailableLists(listNames);
+    });
+  }, [refreshTrigger]);
+
 
   ////////////////////////////////
   // Send the user query to LLM //
@@ -102,7 +134,21 @@ const handleSend = async () => {
   ////////////////////////
   const handleMic = () => {
     console.log("Mic clicked");
-    // TODO: Mic logic
+    if (!speechRef.current) return;
+
+    if (isListening) {
+      speechRef.current.stop();
+      setIsListening(false);
+
+      const finalTranscript = speechRef.current.getTranscript().trim();
+      if (finalTranscript) setQuery(finalTranscript);
+
+    } else {
+      speechRef.current.resetTranscript();
+      setLiveTranscript("");
+      speechRef.current.start();
+      setIsListening(true);
+    }
   };
 
 
@@ -123,19 +169,30 @@ const handleSend = async () => {
   const handleReplace = () => {
     if (!responseList) return;
 
-    const todoData = { "To Do List": responseList };
-    chrome.storage?.local.set({ todoData }, () => {
-      setRefreshTrigger(prev => prev + 1);
-      setResponseList(null);
-      setChatMode("query");
+    // Determine which list to replace
+    const targetList = selectedList || "To Do List";
+
+    chrome.storage?.local.get(["todoData"], (result) => {
+      const todoData = result?.todoData || {};
+      todoData[targetList] = responseList;
+      
+      chrome.storage?.local.set({ todoData }, () => {
+        setRefreshTrigger(prev => prev + 1);
+        setResponseList(null);
+        setChatMode("query");
+      });
     });
   };
 
   const handleAppend = () => {
     if (!responseList) return;
 
+    // Determine which list to append to
+    const targetList = selectedList || "To Do List";
+
     chrome.storage?.local.get(["todoData"], (result) => {
-      const currentList = result?.todoData?.["To Do List"] || [];
+      const todoData = result?.todoData || {};
+      const currentList = todoData[targetList] || [];
       const mergedList = [...currentList];
 
       responseList.forEach(newCategory => {
@@ -152,7 +209,7 @@ const handleSend = async () => {
         }
       });
 
-      const todoData = { "To Do List": mergedList};
+      todoData[targetList] = mergedList;
       chrome.storage?.local.set({ todoData }, () => {
         setRefreshTrigger(prev => prev + 1);
         setResponseList(null);
@@ -170,6 +227,7 @@ const handleSend = async () => {
     <div className="flex h-screen w-screen flex-col">
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
+        
         {/* Left Sidebar */}
         <div className="w-[400px] p-4 border-r border-light-border dark:border-dark-border bg-light-bg-sidebar dark:bg-dark-bg-sidebar">
           <TodoList key={refreshTrigger}/>
@@ -180,7 +238,7 @@ const handleSend = async () => {
           
           {/* Top Bar */}
           <div className="flex items-center justify-between px-6 py-4">
-            <h1 className="text-2xl font-bold text-primary">Canvas QoL</h1>
+            <h1 className="text-2xl font-bold text-primary">tasqe</h1>
             <button
               onClick={() => {chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });}}
               className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
@@ -195,51 +253,76 @@ const handleSend = async () => {
             {chatMode === "query" && (
               <div className="flex w-full flex-col space-y-4 items-center mb-[150px]">
                 <span className="font-bold text-4xl text-primary text-center">{heroText}</span>
-                
+
                 {/* Input Container */}
-                <div className="bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border w-[60%] px-4 py-3 rounded-lg flex items-center gap-3">
-                  <input
-                    type="text"
+                <div className="bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border w-[60%] px-4 pt-3 rounded-lg flex flex-col gap-3">
+                  {/* First row - Text input */}
+                  <textarea
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Type your message here..."
-                    className="flex-1 bg-transparent outline-none text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                    className="w-full mt-2 bg-transparent outline-none text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 resize-none min-h-[24px] max-h-[200px]"
+                    rows={1}
+                    onInput={(e) => {
+                      e.target.style.height = 'auto';
+                      e.target.style.height = e.target.scrollHeight + 'px';
+                    }}
                   />
                   
-                  {/* Icons */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleMic}
-                      className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
-                      aria-label="Voice input"
-                    >
-                      <Mic size={20} className="text-gray-600 dark:text-gray-200" />
-                    </button>
-                    
-                    <button
-                      onClick={handleSend}
-                      disabled={!query.trim()}
-                      className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      aria-label="Send message"
-                    >
-                      <SendHorizontal size={20} className="text-gray-600 dark:text-gray-200" />
-                    </button>
-                  </div>
-                </div>
+                  {/* Second row - Toggle and action buttons */}
+                  <div className="flex items-center justify-between -mt-2 mb-2">
+                    {/* Left side - Toggle */}
+                    <div className="flex items-center space-x-1">
+                      <Rabbit size={21} className="text-gray-600 dark:text-gray-200"/>
+                      <button
+                        onClick={() => setContextToggle(!contextToggle)}
+                        className="p-1 rounded-md transition-colors cursor-pointer"
+                      >
+                        {contextToggle ? (
+                          <ToggleRight size={24} className="text-primary" />
+                        ) : (
+                          <ToggleLeft size={24} className="text-gray-600 dark:text-gray-200" />
+                        )}
+                      </button>
+                      <Turtle size={22} className="text-gray-600 dark:text-gray-200"/>
+                    </div>
 
-                {/* List Context Selector */}
-                <div className="relative w-[200px] self-start ml-[20%]">
-                  <select
-                    className="w-full appearance-none bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border text-gray-800 dark:text-gray-200 p-2 rounded-lg outline-none cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
-                    defaultValue=""
-                  >
-                    <option value="" disabled>Talking about a list?</option>
-                    <option value="My Week">My Week</option>
-                    <option value="Dinosaur Paper">Dinosaur Paper</option>
-                    {/* TODO: List current to-do lists here */}
-                  </select>
-                  <ChevronDown size={20} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-200 pointer-events-none" />
+                    {/* Right side - List selector, Mic and Send */}
+                    <div className="flex items-center">
+                      {/* List Context Selector */}
+                      <div className="relative">
+                        <select
+                          value={selectedList}
+                          onChange={(e) => setSelectedList(e.target.value)}
+                          className="appearance-none bg-transparent text-gray-800 dark:text-gray-200 pr-6 pl-2 py-1 rounded-md outline-none cursor-pointer text-xs"
+                        >
+                          <option value="">Talking about a list?</option>
+                          {availableLists.map(listName => (
+                            <option key={listName} value={listName}>{listName}</option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-200 pointer-events-none" />
+                      </div>
+
+                      <button
+                        onClick={handleMic}
+                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+                        aria-label="Voice input"
+                      >
+                        <Mic size={20} className="text-gray-600 dark:text-gray-200" />
+                      </button>
+                      
+                      <button
+                        onClick={handleSend}
+                        disabled={!query.trim()}
+                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label="Send message"
+                      >
+                        <SendHorizontal size={20} className="text-gray-600 dark:text-gray-200" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

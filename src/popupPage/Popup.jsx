@@ -46,7 +46,7 @@ export default function Popup() {
 
       {/* TodoList Component */}
       <div className="flex flex-1 flex-col px-4 py-3 overflow-hidden">
-        Jeevan is making a cool popup thing rn
+        Jeevan epic code
       </div>
 
       {/* Bottom buttons */}
