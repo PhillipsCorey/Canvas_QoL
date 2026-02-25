@@ -1,6 +1,6 @@
-import { ChevronDown, Mic, Rabbit, SendHorizontal, Settings, ToggleLeft, ToggleRight, Turtle } from "lucide-react";
+import { BrainCircuit, ChevronDown, Mic, Rabbit, SendHorizontal, Settings, ToggleLeft, ToggleRight, Turtle } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
-import TodoList from "../components/todoList";
+import Sidebar from "../components/Sidebar";
 import { todoPlaintext, todoJSON } from "./navigator";
 import { isInjectionLike, extractValidatedTodo } from "./chat_helpers";
 
@@ -77,56 +77,56 @@ export default function Chat() {
   ////////////////////////////////
   // Send the user query to LLM //
   ////////////////////////////////
-const handleSend = async () => {
-  if (!query.trim()) return;
+  const handleSend = async () => {
+    if (!query.trim()) return;
 
-  setQuery("");
+    setQuery("");
 
-  if (isInjectionLike(query)) {
-    setHeroText("Nice try.");
-    return;
-  }
-
-  // update history (max 5)
-  const updatedQueries = [query, ...pastQueries].slice(0, 5);
-
-  setPastQueries(updatedQueries);
-
-  chrome.storage?.local.set({
-    pastFiveQueries: updatedQueries
-  });
-
-  console.log("Sending:", query);
-  setHeroText("Processing your word vomit...");
-
-  const responsePlaintext = await todoPlaintext(query);
-  const outputPlaintext = responsePlaintext.choices[0].message.content;
-
-  setHeroText("Dang bro this week sucks...");
-
-  let parsed;
-
-  // The JSON formatting step sometimes drifts, so we attempt this 3 times
-  // and retry if the output was malformed.
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const responseJSON = await todoJSON(outputPlaintext);
-    const validated = extractValidatedTodo(responseJSON);
-    if (validated) {
-      parsed = validated;
-      break;
+    if (isInjectionLike(query)) {
+      setHeroText("Nice try.");
+      return;
     }
-  }
 
-  if (!parsed) {
-    setHeroText("Couldn't parse the response. Try again.");
-    return;
-  }
+    // update history (max 5)
+    const updatedQueries = [query, ...pastQueries].slice(0, 5);
 
-  setResponseList(parsed.todo);
-  setChatMode("result");
-  setHeroText("What's on the schedule this week?");
-  setQuery("");
-};
+    setPastQueries(updatedQueries);
+
+    chrome.storage?.local.set({
+      pastFiveQueries: updatedQueries
+    });
+
+    console.log("Sending:", query);
+    setHeroText("Processing your word vomit...");
+
+    const responsePlaintext = await todoPlaintext(query);
+    const outputPlaintext = responsePlaintext.choices[0].message.content;
+
+    setHeroText("Dang bro this week sucks...");
+
+    let parsed;
+
+    // The JSON formatting step sometimes drifts, so we attempt this 3 times
+    // and retry if the output was malformed.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const responseJSON = await todoJSON(outputPlaintext);
+      const validated = extractValidatedTodo(responseJSON);
+      if (validated) {
+        parsed = validated;
+        break;
+      }
+    }
+
+    if (!parsed) {
+      setHeroText("Couldn't parse the response. Try again.");
+      return;
+    }
+
+    setResponseList(parsed.todo);
+    setChatMode("result");
+    setHeroText("What's on the schedule this week?");
+    setQuery("");
+  };
 
 
   ////////////////////////
@@ -229,40 +229,39 @@ const handleSend = async () => {
       <div className="flex flex-1 overflow-hidden">
         
         {/* Left Sidebar */}
-        <div className="w-[400px] p-4 border-r border-light-border dark:border-dark-border bg-light-bg-sidebar dark:bg-dark-bg-sidebar">
-          <TodoList key={refreshTrigger}/>
+        <div className="w-72 p-4 border-r border-light-border dark:border-dark-border bg-light-bg-sidebar dark:bg-dark-bg-sidebar">
+          <Sidebar key={refreshTrigger}/>
         </div>
 
         {/* Right Side - Chat Area */}
         <div className="flex flex-1 flex-col bg-light-bg dark:bg-dark-bg">
           
-          {/* Top Bar */}
-          <div className="flex items-center justify-between px-6 py-4">
-            <h1 className="text-2xl font-bold text-primary">tasqe</h1>
+          {/* Settings Button */}
+          <div className="flex items-center justify-end px-6 py-4">
             <button
               onClick={() => {chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });}}
-              className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+              className="p-1.5 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-md transition-colors"
               aria-label="Settings"
             >
-              <Settings size={24} className="text-gray-600 dark:text-gray-400" />
+              <Settings size={24} className="text-gray-600 dark:text-gray-300" />
             </button>
           </div>
 
           {/* Center Content */}
           <div className="flex flex-1 items-center justify-center">
             {chatMode === "query" && (
-              <div className="flex w-full flex-col space-y-4 items-center mb-[150px]">
+              <div className="flex w-full flex-col space-y-5 items-center mb-32">
                 <span className="font-bold text-4xl text-primary text-center">{heroText}</span>
 
                 {/* Input Container */}
                 <div className="bg-light-bg-sidebar dark:bg-dark-bg-sidebar border border-light-border dark:border-dark-border w-[60%] px-4 pt-3 rounded-lg flex flex-col gap-3">
-                  {/* First row - Text input */}
+                  {/* Text input */}
                   <textarea
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={handleKeyDown}
                     placeholder="Type your message here..."
-                    className="w-full mt-2 bg-transparent outline-none text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 resize-none min-h-[24px] max-h-[200px]"
+                    className="w-full mt-2 bg-transparent outline-none text-gray-800 dark:text-gray-300 placeholder-gray-400 dark:placeholder-gray-500 resize-none min-h-[24px] max-h-[200px]"
                     rows={1}
                     onInput={(e) => {
                       e.target.style.height = 'auto';
@@ -270,56 +269,53 @@ const handleSend = async () => {
                     }}
                   />
                   
-                  {/* Second row - Toggle and action buttons */}
+                  {/* Toggle and action buttons */}
                   <div className="flex items-center justify-between -mt-2 mb-2">
-                    {/* Left side - Toggle */}
-                    <div className="flex items-center space-x-1">
-                      <Rabbit size={21} className="text-gray-600 dark:text-gray-200"/>
-                      <button
-                        onClick={() => setContextToggle(!contextToggle)}
-                        className="p-1 rounded-md transition-colors cursor-pointer"
-                      >
-                        {contextToggle ? (
-                          <ToggleRight size={24} className="text-primary" />
-                        ) : (
-                          <ToggleLeft size={24} className="text-gray-600 dark:text-gray-200" />
-                        )}
-                      </button>
-                      <Turtle size={22} className="text-gray-600 dark:text-gray-200"/>
-                    </div>
+                    {/* Toggle */}
+                    <button
+                      onClick={() => setContextToggle(!contextToggle)}
+                      className={`flex items-center gap-2 px-2 py-1.5 rounded-md transition-colors cursor-pointer ${
+                        contextToggle 
+                          ? 'bg-primary/10 text-primary hover:bg-primary/20' 
+                          : 'text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      <BrainCircuit size={18} className="rotate-90"/>
+                      <span className="text-xs font-medium mb-0.5">Deep Think</span>
+                    </button>
 
-                    {/* Right side - List selector, Mic and Send */}
+                    {/* List selector, Mic and Send */}
                     <div className="flex items-center">
                       {/* List Context Selector */}
                       <div className="relative">
                         <select
                           value={selectedList}
                           onChange={(e) => setSelectedList(e.target.value)}
-                          className="appearance-none bg-transparent text-gray-800 dark:text-gray-200 pr-6 pl-2 py-1 rounded-md outline-none cursor-pointer text-xs"
+                          className="appearance-none bg-transparent text-gray-800 dark:text-gray-300 pr-6 pl-2 py-1 rounded-md outline-none cursor-pointer text-xs"
                         >
-                          <option value="">Talking about a list?</option>
+                          <option value="">Create a new list</option>
                           {availableLists.map(listName => (
                             <option key={listName} value={listName}>{listName}</option>
                           ))}
                         </select>
-                        <ChevronDown size={14} className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-200 pointer-events-none" />
+                        <ChevronDown size={14} className="absolute right-1 top-1/2 -translate-y-1/2 text-gray-600 dark:text-gray-300 pointer-events-none" />
                       </div>
 
                       <button
                         onClick={handleMic}
-                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors"
+                        className="p-1.5 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-md transition-colors"
                         aria-label="Voice input"
                       >
-                        <Mic size={20} className="text-gray-600 dark:text-gray-200" />
+                        <Mic size={20} className="text-gray-600 dark:text-gray-300" />
                       </button>
                       
                       <button
                         onClick={handleSend}
                         disabled={!query.trim()}
-                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="p-1.5 hover:bg-gray-300 dark:hover:bg-gray-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         aria-label="Send message"
                       >
-                        <SendHorizontal size={20} className="text-gray-600 dark:text-gray-200" />
+                        <SendHorizontal size={20} className="text-gray-600 dark:text-gray-300" />
                       </button>
                     </div>
                   </div>
@@ -344,7 +340,7 @@ const handleSend = async () => {
                             <div className="flex items-start gap-2">
                               <div className="flex-1">
                                 <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                  <span className="text-sm font-medium text-gray-800 dark:text-gray-300">
                                     {item.name}
                                   </span>
                                   {item.time && (
