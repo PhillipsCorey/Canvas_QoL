@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import {ArrowLeft, Plus, Trash2, Pencil, Check, X, ChevronDown, ChevronRight, Clock, Calendar, CheckSquare, Square, BrainCog} from "lucide-react";
 
 
-export default function ListDetailPanel({ listName, onBack }) {
+export default function ListDetailPanel({ listName, onListUpdated }) {
   const [categories, setCategories] = useState([]);
   const [expandedCategories, setExpandedCategories] = useState(new Set());
   const [addingCategory, setAddingCategory] = useState(false);
@@ -52,10 +52,14 @@ export default function ListDetailPanel({ listName, onBack }) {
   const saveToStorage = (updatedCategories) => {
     setCategories(updatedCategories);
 
-    chrome.storage?.local.get(["todoData"], (result) => {
+    chrome.storage?.local.get(["todoData", "todoTimestamps"], (result) => {
       const todoData = result?.todoData || {};
+      const timestamps = result?.todoTimestamps || {};
       todoData[listName] = updatedCategories;
-      chrome.storage?.local.set({ todoData });
+      timestamps[listName] = Date.now();
+      chrome.storage?.local.set({ todoData, todoTimestamps: timestamps }, () => {
+        onListUpdated?.();
+      });
     });
   };
 

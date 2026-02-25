@@ -10,7 +10,7 @@ import SpeechService from "./speech";
 export default function Chat() {
   const [mainView, setMainView] = useState("chat"); // "chat" or "listDetail"
   const [activeListName, setActiveListName] = useState(null);
-  const [chatMode, setChatMode] = useState("query");
+  const [chatMode, setChatMode] = useState("query");  // "query" or "result"
   const [heroText, setHeroText] = useState("What's on the schedule this week?");
   const [query, setQuery] = useState("");
   const [responseList, setResponseList] = useState(null);
@@ -22,6 +22,7 @@ export default function Chat() {
   const speechRef = useRef(null);
   const [isListening, setIsListening] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState("");
+  const [responseListName, setResponseListName] = useState("");
 
 
   //////////////////////////////////////////////////////////////////
@@ -44,9 +45,9 @@ export default function Chat() {
   }, []);
 
 
-  /////////////////////////////////////////
+  ///////////////////////////////////////////
   // Pull previously sent queries on mount //
-  /////////////////////////////////////////
+  ///////////////////////////////////////////
   useEffect(() => {
     chrome.storage?.local.get(["pastFiveQueries"], (result) => {
       setPastQueries(result.pastFiveQueries || []);
@@ -54,7 +55,7 @@ export default function Chat() {
   }, []);
 
 
-  //////////////////////////////
+  ///////////////////////////////
   // Initialize speech service //
   //////////////////////////////
   useEffect(() => {
@@ -71,9 +72,9 @@ export default function Chat() {
   }, []);
 
 
-  ///////////////////////////////////////////
+  ////////////////////////////////////////////
   // Load available lists from localStorage //
-  ///////////////////////////////////////////
+  ////////////////////////////////////////////
   useEffect(() => {
     chrome.storage?.local.get(["todoData"], (result) => {
       const data = result?.todoData || {};
@@ -88,8 +89,6 @@ export default function Chat() {
   ////////////////////////////////
   const handleSend = async () => {
     if (!query.trim()) return;
-
-    setQuery("");
 
     if (isInjectionLike(query)) {
       setHeroText("Nice try.");
@@ -121,10 +120,12 @@ export default function Chat() {
 
     if (!parsed) {
       setHeroText("Couldn't parse the response. Try again.");
+      
       return;
     }
 
     setResponseList(parsed.todo);
+    setResponseListName(parsed.name || "");
     setChatMode("result");
     setHeroText("What's on the schedule this week?");
     setQuery("");
@@ -169,52 +170,23 @@ export default function Chat() {
   /////////////////////////////////////////
   // Handler for response action buttons //
   /////////////////////////////////////////
-  const handleReplace = () => {
+  const handleReplace = (name) => {
     if (!responseList) return;
 
-    const targetList = selectedList || "To Do List";
+    const targetList = name || selectedList || "Your New List";
 
-    chrome.storage?.local.get(["todoData"], (result) => {
+    chrome.storage?.local.get(["todoData", "todoTimestamps"], (result) => {
       const todoData = result?.todoData || {};
       todoData[targetList] = responseList;
 
-      chrome.storage?.local.set({ todoData }, () => {
+        const timestamps = result?.todoTimestamps || {};
+        timestamps[targetList] = Date.now();
+        chrome.storage?.local.set({ todoData, todoTimestamps: timestamps }, () => {
         setRefreshTrigger(prev => prev + 1);
         setResponseList(null);
         setChatMode("query");
-      });
-    });
-  };
-
-  const handleAppend = () => {
-    if (!responseList) return;
-
-    const targetList = selectedList || "To Do List";
-
-    chrome.storage?.local.get(["todoData"], (result) => {
-      const todoData = result?.todoData || {};
-      const currentList = todoData[targetList] || [];
-      const mergedList = [...currentList];
-
-      responseList.forEach(newCategory => {
-        const existingCategoryIndex = mergedList.findIndex(
-          cat => cat.name.toLowerCase() === newCategory.name.toLowerCase()
-        );
-
-        if (existingCategoryIndex >= 0) {
-          mergedList[existingCategoryIndex].items.push(...newCategory.items);
-        }
-
-        else {
-          mergedList.push(newCategory);
-        }
-      });
-
-      todoData[targetList] = mergedList;
-      chrome.storage?.local.set({ todoData }, () => {
-        setRefreshTrigger(prev => prev + 1);
-        setResponseList(null);
-        setChatMode("query");
+        setActiveListName(targetList);
+        setMainView("listDetail");
       });
     });
   };
@@ -222,6 +194,7 @@ export default function Chat() {
   const handleDiscard = () => {
     setResponseList(null);
     setChatMode("query");
+    setSelectedList("");
   };
 
 
@@ -236,6 +209,7 @@ export default function Chat() {
   const handleSelectNewList = () => {
     setActiveListName(null);
     setMainView("chat");
+    setSelectedList("");
   };
 
 
@@ -261,6 +235,7 @@ export default function Chat() {
             setHeroText={setHeroText}
             query={query}
             setQuery={setQuery}
+            lastQuery={pastQueries[0]}
             responseList={responseList}
             setResponseList={setResponseList}
             availableLists={availableLists}
@@ -273,12 +248,13 @@ export default function Chat() {
             handleSend={handleSend}
             handleKeyDown={handleKeyDown}
             handleReplace={handleReplace}
-            handleAppend={handleAppend}
             handleDiscard={handleDiscard}
+            responseListName={responseListName}
           />
         ) : (
           <ListDetailsPanel
             listName={activeListName}
+            onListUpdated={() => setRefreshTrigger(prev => prev + 1)}
           />
         )}
       </div>
