@@ -1,6 +1,5 @@
 import { Settings } from "lucide-react";
 import { useEffect } from "react";
-import TodoList from "../components/todoList";
 
 export default function Popup() {
   useEffect(() => {
@@ -46,7 +45,7 @@ export default function Popup() {
 
       {/* TodoList Component */}
       <div className="flex flex-1 flex-col px-4 py-3 overflow-hidden">
-        <TodoList />
+        Jeevan epic code
       </div>
 
       {/* Bottom buttons */}
