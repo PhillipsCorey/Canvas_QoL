@@ -120,33 +120,45 @@ function injectReminders(tasks) {
   document.getElementById("cqol-reminders")?.remove();
   if (tasks.length === 0) return;
 
-  const container = document.createElement("div");
-  container.id = "cqol-reminders";
+  const DISMISS_DELAY = 30 * 60 * 1000;
+  const keys = tasks.map(t => `reminderDismissedAt_${t.name}`);
 
-  tasks.forEach(task => {
-    const card = document.createElement("div");
-    card.className = "cqol-card";
+  chrome.storage.local.get(keys, (result) => {
+    const container = document.createElement("div");
+    container.id = "cqol-reminders";
 
-    card.innerHTML = `
-      <div class="cqol-card-body">
-        <span class="cqol-category">${task.categoryName}</span>
-        <span class="cqol-title">${task.name}</span>
-        ${task.time ? `<span class="cqol-time">⏱ ${task.time}</span>` : ""}
-      </div>
-      <button class="cqol-dismiss" aria-label="Dismiss">×</button>
-    `;
+    tasks.forEach(task => {
+      const dismissedAt = result[`reminderDismissedAt_${task.name}`];
+      const enoughTimePassed = !dismissedAt || (Date.now() - dismissedAt > DISMISS_DELAY);
+      if (!enoughTimePassed) return;
 
-    card.querySelector(".cqol-dismiss").addEventListener("click", () => {
-      card.remove();
-      if (container.querySelectorAll(".cqol-card").length === 0) {
-        container.remove();
-      }
+      const card = document.createElement("div");
+      card.className = "cqol-card";
+
+      card.innerHTML = `
+        <div class="cqol-card-body">
+          <span class="cqol-category">${task.categoryName}</span>
+          <span class="cqol-title">${task.name}</span>
+          ${task.time ? `<span class="cqol-time">⏱ ${task.time}</span>` : ""}
+        </div>
+        <button class="cqol-dismiss" aria-label="Dismiss">×</button>
+      `;
+
+      card.querySelector(".cqol-dismiss").addEventListener("click", () => {
+        card.remove();
+        if (container.querySelectorAll(".cqol-card").length === 0) {
+          container.remove();
+        }
+        chrome.storage.local.set({ [`reminderDismissedAt_${task.name}`]: Date.now() });
+      });
+
+      container.appendChild(card);
     });
 
-    container.appendChild(card);
+    if (container.querySelectorAll(".cqol-card").length > 0) {
+      document.body.appendChild(container);
+    }
   });
-
-  document.body.appendChild(container);
 }
 
 function checkReminders() {
