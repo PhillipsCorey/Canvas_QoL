@@ -1,9 +1,19 @@
 import { Settings } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import WeekCalendar from "../components/Calendar";
+import FirstTimeSetup from "../components/Setup";
 
 export default function Popup() {
+  const [showSetup, setShowSetup] = useState(true);
+
+  const handleSetupComplete = () => {
+    chrome.storage?.local.set({ preferencesSet: true });
+    setShowSetup(false);
+  };
+
   useEffect(() => {
-    chrome.storage?.local.get(["darkMode"], (result) => {
+    chrome.storage?.local.get(["darkMode", "preferencesSet"], (result) => {
+      setShowSetup(!result.preferencesSet);
       let isDarkMode;
       if (result.darkMode !== undefined) {
         isDarkMode = result.darkMode;
@@ -26,12 +36,7 @@ export default function Popup() {
     chrome.tabs.create({ url: chrome.runtime.getURL("options.html") });
   };
 
-  const openAPI = () => {
-    chrome.storage?.local.get(["todoData"], (result) => {
-      const jsonString = JSON.stringify(result.todoData, null, 2);
-      console.log(jsonString);
-    });
-  };
+  
 
   return (
     <div className="w-96 h-[600px] flex flex-col bg-light-bg dark:bg-dark-bg">
@@ -44,19 +49,26 @@ export default function Popup() {
       </div>
 
       {/* TodoList Component */}
+      {/* <div className="flex flex-1 flex-col px-4 py-3 overflow-hidden">
+        <WeekCalendar />
+      </div> */}
       <div className="flex flex-1 flex-col px-4 py-3 overflow-hidden">
-        Jeevan epic code
+        {showSetup ? (
+          <FirstTimeSetup onComplete={handleSetupComplete} />
+        ) : (
+          <WeekCalendar />
+        )}
       </div>
 
       {/* Bottom buttons */}
-      <div className="flex items-center gap-2 px-4 py-3 border-t border-light-border dark:border-dark-border">
-        <button onClick={openChat} className="flex-1 bg-primary hover:bg-primary-hover text-white py-2 rounded-lg transition-colors text-sm">
-          Open Chat
-        </button>
-        <button onClick={openAPI} className="flex-1 bg-primary hover:bg-primary-hover text-white py-2 rounded-lg transition-colors text-sm">
-          Open API
-        </button>
-      </div>
+      {!showSetup && (
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-light-border dark:border-dark-border">
+          <button onClick={openChat} className="flex-1 bg-primary hover:bg-primary-hover text-white py-2 rounded-lg transition-colors text-sm">
+            Open Chat
+          </button>
+        </div>
+    )}
+      
     </div>
   );
 }

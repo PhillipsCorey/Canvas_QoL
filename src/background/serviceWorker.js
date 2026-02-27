@@ -43,3 +43,24 @@ chrome.notifications.onButtonClicked.addListener(async (id, buttonIndex) => {
   // Fallback: open a dedicated extension page in a tab
   chrome.tabs.create({ url: chrome.runtime.getURL("popup.html") });
 });
+
+
+
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.alarms.create("reminderCheck", { periodInMinutes: 30 });
+});
+
+// Also fire once when browser starts
+chrome.runtime.onStartup.addListener(() => {
+  chrome.alarms.create("reminderCheck", { periodInMinutes: 30 });
+});
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== "reminderCheck") return;
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]?.id) {
+      chrome.tabs.sendMessage(tabs[0].id, { action: "checkReminders" })
+        .catch(() => {}); // silently ignore if content script isn't loaded on that tab
+    }
+  });
+});

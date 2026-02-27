@@ -20,17 +20,24 @@ async function run() {
     outfile: "dist/background.js",
   });
 
-  await esbuild({
-    ...common,
-    entryPoints: ["src/content/contentScript.js"],
-    outfile: "dist/content.js",
-  });
+  // await esbuild({
+  //   ...common,
+  //   entryPoints: ["src/content/contentScript.js"],
+  //   outfile: "dist/content.js",
+  // });
 
   await esbuild({
     ...common,
-    entryPoints: ["src/content/catchCanvas.js"],
-    outfile: "dist/catchCanvas.js"
-  })
+    format: "iife",
+    entryPoints: ["src/content/content.js"],
+    outfile: "dist/content.js",
+  });
+
+  // await esbuild({
+  //   ...common,
+  //   entryPoints: ["src/content/catchCanvas.js"],
+  //   outfile: "dist/catchCanvas.js"
+  // })
 
   await viteBuild();
 }
